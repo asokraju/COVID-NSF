@@ -10,7 +10,6 @@ import gym
 from gym import spaces
 from gym.utils import seeding
 
-import pylab
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
