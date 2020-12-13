@@ -51,9 +51,9 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
     
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1000)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1500)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
-    parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.999)
+    parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     
     #model/env paramerters
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=100)
@@ -79,14 +79,15 @@ if __name__ == '__main__':
     env.weight, test_env.weight= args['env_weight'], args['env_weight']
 
     agent = PPOAgent(
-        env=env, 
-        test_env=test_env, 
-        exp_name = args['exp_name'], 
-        EPSIODES = args['max_episodes'], 
-        lr = args['lr'], 
-        EPOCHS = args['EPOCHS'],
-        path = args['summary_dir'],
-        gamma = args['gamma'])
+        env         =   env, 
+        test_env    =   test_env, 
+        exp_name    =   args['exp_name'], 
+        EPSIODES    =   args['max_episodes'], 
+        lr          =   args['lr'], 
+        EPOCHS      =   args['EPOCHS'],
+        path        =   args['summary_dir'],
+        gamma       =   args['gamma']
+        )
     
 
     agent.run()

@@ -28,7 +28,7 @@ def AC_model(input_shape, action_dim, lr):
     defines Actor and Critic models that shares the input and the hidden layers
     """
     input_layer = Input(input_shape)
-    layer_1 = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(input_layer)
+    layer_1 = Dense(units=30, activation='elu', kernel_initializer='he_uniform')(input_layer)
     actions = Dense(units=action_dim, activation='softmax', kernel_initializer='he_uniform')(layer_1)
     values = Dense(units=1, activation='linear', kernel_initializer='he_uniform')(layer_1)
 
