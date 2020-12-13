@@ -52,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
     
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1000)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.999)
     
@@ -89,7 +89,7 @@ if __name__ == '__main__':
         path = args['summary_dir'],
         gamma = args['gamma'])
     
-    
+
     agent.run()
 
     #testing
@@ -102,4 +102,5 @@ if __name__ == '__main__':
         scores   = agent.scores,
         averages = agent.averages
     )
-    savemat('data_' + datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + '.mat', data)
+    file_name = args['summary_dir'] + "/" + 'data_' + datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + '.mat'
+    savemat(file_name, data)
