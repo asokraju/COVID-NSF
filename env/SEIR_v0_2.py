@@ -4,8 +4,7 @@ from gym import spaces
 from gym.utils import seeding
 import matplotlib.pyplot as plt
 
-
-class SEIR_v0_1(gym.Env):
+class SEIR_v0_2(gym.Env):
     """
     Description:
             Each city's population is broken down into four compartments --
@@ -19,6 +18,7 @@ class SEIR_v0_1(gym.Env):
     Time:
             discretizing_time: time in minutes used to discretizing the model
             sampling_time: time in days that we sample from the system
+            sim_length: time in days
             
             
     Observation*:
@@ -60,35 +60,34 @@ class SEIR_v0_1(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, discretizing_time = 5, sampling_time = 1, action_max = 2, sim_length = 100):
-        super(SEIR_v0_1, self).__init__()
+    def __init__(self, discretizing_time = 5, sampling_time = 1, sim_length = 100):
+        super(SEIR_v0_2, self).__init__()
 
         self.dt           = discretizing_time/(24*60)
         self.Ts           = sampling_time
         self.time_steps   = int((self.Ts) / self.dt)
-        self.n_agents     = 1
-
+       
         self.popu         = 100000
-        self.current      = 1
-        self.pred         = 1
         self.trainNoise   = False
         self.weight       = 0.5 #reward weighting
 
         #model paramenters
-        self.theta        = np.full(shape=self.n_agents, fill_value=2, dtype=float)#np.array([2, 2, 2, 2], dtype = float) #choose a random around 1
-        self.d            = np.full(shape=self.n_agents, fill_value=1/24, dtype=float)#np.array([1/24, 1/24, 1/24, 1/24], dtype = float) # 1 hour or 1/24 days
+        self.theta        = np.full(shape=1, fill_value=2, dtype=float)#np.array([2, 2, 2, 2], dtype = float) #choose a random around 1
+        self.d            = np.full(shape=1, fill_value=1/24, dtype=float)#np.array([1/24, 1/24, 1/24, 1/24], dtype = float) # 1 hour or 1/24 days
 
-        #crowd density = np.full(shape=4, fill_value=6, dtype=float)
-        self.beta         = self.theta * self.d * np.full(shape=self.n_agents, fill_value=1, dtype=float) #needs to be changed
-        self.sigma        = 1.0/5  # needds to be changed
-        self.gamma        = 0.05 #needs to be changed
+        #crowd density = np.full(shape=1, fill_value=6, dtype=float)
+        #self.beta         = self.theta * self.d * np.full(shape=1, fill_value=1, dtype=float) #needs to be changed
+        self.sigma        = 1.0/5   # needds to be changed
+        self.gamma        = 0.05    # needs to be changed
 
-        self.action_max   = action_max     # Maximum value of action
-        self.n_actions    = action_max + 1 #total number of actions 
+        self.n_actions    = 3                                               # total number of actions 
+        self.rho          = np.array([0, 0.75, 1.5], dtype=float)      # possible actions (crowd_densities)
+
+        #Economic costs 
+        self.eco_costs    = np.array([1, 0.25, 0], dtype=float) 
 
         #gym action space and observation space
-        self.action_space = spaces.MultiDiscrete([self.n_actions for _ in range(self.n_agents)])
-        #spaces.Box(low = 0, high = self.action_max, shape = (4,), dtype = np.float64)
+        self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(0, np.inf, shape=(4,), dtype=np.float64)
 
         #Total number of simulation days
@@ -102,9 +101,10 @@ class SEIR_v0_1(gym.Env):
         self.get_state()
 
         #memory to save the trajectories
-        self.state_trajectory = []
+        self.state_trajectory  = []
         self.action_trajectory = []
-
+        self.rewards            = []
+        self.count             = 0
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -118,14 +118,14 @@ class SEIR_v0_1(gym.Env):
         assert self.popu==sum(state), err_msg
         self.state = state
     
-    def mini_step(self, action):
+    def mini_step(self, rho):
 
         # action should be with in 0 - 2
         # 
-        self.beta = self.theta * self.d * action
+        self.beta = self.theta * self.d * rho
         S, E, I, R = self.state
 
-        dS = - sum(self.beta) * I * S / self.popu
+        dS = - (self.beta) * I * S / self.popu
         dE = - dS - (self.sigma * E)
         dI = (self.sigma * E) - (self.gamma * I)
         dR = (self.gamma * I)
@@ -139,27 +139,33 @@ class SEIR_v0_1(gym.Env):
 
     def step(self, action):
 
-        self.daynum += 1
+        self.daynum += self.Ts
 
         for _ in range(self.time_steps):
-            self.state = self.mini_step(action)
+            self.state = self.mini_step(self.rho[action])
 
+            # saving the states and actions in the memory buffers
+            self.state_trajectory.append(list(self.state))
+            self.action_trajectory.append(action)
+            self.count += 1
         # Costs
         # action represent the crowd density, so decrease in crowd density increases the economic cost
-        economicCost = (2 / (self.action_max*self.n_agents*1.5)) * (self.action_max - np.sum(action))
+        economicCost = self.eco_costs[action] * self.Ts
 
         # Public health Cost increases with increase in Infected people.
-        publichealthCost   =  0.00002*abs(self.state[2])
+        publichealthCost   =  (1 - 0.00001 * self.state[2]) * self.Ts
         
         # Rewards
         reward = - self.weight * economicCost - (1 - self.weight) * publichealthCost
 
         # Check if episode is over
-        done = bool(self.state[2] < 0.5 or self.daynum == self.sim_length)
+        done = bool(self.state[2] < 0.5 or self.daynum >= self.sim_length)
 
         # saving the states and actions in the memory buffers
-        self.state_trajectory.append(list(self.state))
-        self.action_trajectory.append(action)
+        #self.state_trajectory.append(list(self.state))
+        #self.action_trajectory.append(action)
+        for _ in range(self.time_steps):
+            self.rewards.append(reward)
         return self.state, reward, done, {}
         
     def reset(self):
@@ -171,26 +177,47 @@ class SEIR_v0_1(gym.Env):
         #memory reset
         self.state_trajectory = []
         self.action_trajectory = []
+        self.rewards            = []
+        self.count = 0
 
         return self.state
     
     def plot(self, savefig_filename=None):
         title_states = ['Susceptible', 'Exposed', 'Infected', 'Removed']
-        test_steps = self.daynum
-        time = np.array(range(test_steps), dtype=np.float32)*self.Ts
+        test_steps = self.count
+        time = np.array(range(self.count), dtype=np.float32)*self.dt
         test_obs_reshape = np.concatenate(self.state_trajectory).reshape((test_steps ,self.observation_space.shape[0]))
-        #test_act_reshape = self.action_trajectory#np.concatenate(self.action_trajectory).reshape((test_steps ,self.action_space.shape[0]))
+        #test_act_reshape = self.action_trajectory#np.concatenate(self.action_trajectory).reshape((test_steps ,1))
         state_dim = self.observation_space.shape[0]
-        act_dim = self.action_space.shape[0]
+        act_dim = self.action_space.n
         #total_dim = self.observation_space.shape[0] + self.action_space.shape[0]
 
-        fig, ax = plt.subplots(nrows=1, ncols=state_dim, figsize = (24,4))
-        for i in range(state_dim):
-            ax[i].plot(time, test_obs_reshape[:, i], label=title_states[i])
-            #ax[i].set_ylim(des[i]-50, des[i]+50)
-            ax[i].set_title(title_states[i], fontsize=15)
-            ax[i].set_xlabel('Time', fontsize=10)
-            ax[i].set_ylim(0, self.popu)
-            ax[i].set_label('Label via method')
-            ax[i].legend()
-        plt.show()
+        fig, ax = plt.subplots(nrows=3, ncols=1, figsize = (10,15))
+
+        ax[0].plot(time, test_obs_reshape)
+        #ax[0].set_ylim(des[i]-50, des[i]+50)
+        ax[0].set_title('SEIR', fontsize=15)
+        #ax[0].set_xlabel('Time (days)', fontsize=10)
+        ax[0].set_ylim(0, self.popu)
+        #ax[0].set_label('Label via method')
+        ax[0].legend()
+
+        ax[1].step(time, self.action_trajectory, label='actions')
+        ax[1].set_title('Actions', fontsize=15)
+        #ax[1].set_xlabel('Time (days)', fontsize=10)
+        ax[1].set_label('Label via method')
+        ax[1].legend()
+
+        ax[2].plot(time, self.rewards, label='rewards')
+        ax[2].set_title('Rewards', fontsize=15)
+        ax[2].set_xlabel('Time (days)', fontsize=10)
+        ax[2].set_label('Label via method')
+        ax[2].legend()
+
+        if savefig_filename is not None:
+            assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
+            plt.savefig(savefig_filename, format = 'pdf')
+            #plt.savefig('savefig_filename', format='eps')
+        else:
+            plt.show()
+
