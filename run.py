@@ -1,0 +1,105 @@
+#PiPy packages
+import os
+import argparse
+import pprint as pp
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+#os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+import random
+import gym
+from gym import spaces
+from gym.utils import seeding
+
+import pylab
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten
+from tensorflow.keras.optimizers import Adam, RMSprop
+from tensorflow.keras import backend as K
+
+import threading
+from threading import Thread, Lock
+import time
+
+from sklearn.preprocessing import StandardScaler
+from joblib import dump, load
+from scipy.io import savemat
+import datetime
+
+
+#Local Packages
+from env.SEIR_v0_2 import SEIR_v0_2
+from RL_algo.PPO import AC_model, PPOAgent
+
+
+#---------------------------------------------------------------------
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
+    #loading the environment to get it default params
+    env = SEIR_v0_2()
+
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+    #--------------------------------------------------------------------
+    parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
+
+    #general params
+    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results')
+    parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
+    parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
+    parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
+    parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
+    
+    #PPO agent params
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1)
+    parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
+    parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.999)
+    
+    #model/env paramerters
+    parser.add_argument('--sim_length', help='Total number of days', type = int, default=100)
+    parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=1)
+    parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
+
+    #Network parameters
+    parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
+    parser.add_argument('--lr', help='learning rate', type = float, default=0.0001)
+    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=10)
+
+    args = vars(parser.parse_args())
+    
+    pp.pprint(args)
+    try:
+        os.makedir(args['summary_dir'])
+    except:
+        pass
+
+    env = SEIR_v0_2(discretizing_time = args['discretization_time'], sampling_time = args['sampling_time'], sim_length = args['sim_length'])
+    test_env = SEIR_v0_2(discretizing_time = args['discretization_time'], sampling_time = args['sampling_time'], sim_length = args['sim_length'])
+    env.weight, test_env.weight= args['env_weight'], args['env_weight']
+
+    agent = PPOAgent(
+        env=env, 
+        test_env=test_env, 
+        exp_name = args['exp_name'], 
+        EPSIODES = args['max_episodes'], 
+        lr = args['lr'], 
+        EPOCHS = args['EPOCHS'],
+        path = args['summary_dir'],
+        gamma = args['gamma'])
+    
+    
+    agent.run()
+
+    #testing
+    print("testing the agent")
+    agent.test(savefig_filename='fin_plot.pdf')
+    data = dict(
+        states   = agent.env.state_trajectory,
+        actions  = agent.env.action_trajectory,
+        rewards  = agent.env.rewards,
+        scores   = agent.scores,
+        averages = agent.averages
+    )
+    savemat('data_' + datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + '.mat', data)
