@@ -2,6 +2,7 @@ import numpy as np
 import gym
 from gym import spaces
 from gym.utils import seeding
+import pandas as pd
 import matplotlib.pyplot as plt
 
 class SEIR_v0_2(gym.Env):
@@ -153,7 +154,7 @@ class SEIR_v0_2(gym.Env):
         economicCost = self.eco_costs[action] * self.Ts
 
         # Public health Cost increases with increase in Infected people.
-        publichealthCost   =  (1e-5 * self.state[2]) * self.Ts
+        publichealthCost   =  (1e-4 * self.state[2]) * self.Ts
         
         # Rewards
         reward = - self.weight * economicCost - (1 - self.weight) * publichealthCost
@@ -181,39 +182,32 @@ class SEIR_v0_2(gym.Env):
         self.count = 0
 
         return self.state
-    
-    def plot(self, savefig_filename=None):
+
+    def dataframe(self):
         title_states = ['Susceptible', 'Exposed', 'Infected', 'Removed']
-        test_steps = self.count
         time = np.array(range(self.count), dtype=np.float32)*self.dt
-        test_obs_reshape = np.concatenate(self.state_trajectory).reshape((test_steps ,self.observation_space.shape[0]))
-        #test_act_reshape = self.action_trajectory#np.concatenate(self.action_trajectory).reshape((test_steps ,1))
-        state_dim = self.observation_space.shape[0]
-        act_dim = self.action_space.n
-        #total_dim = self.observation_space.shape[0] + self.action_space.shape[0]
+        test_obs_reshape = np.concatenate(self.state_trajectory).reshape((self.count ,self.observation_space.shape[0]))
+        self.df = pd.DataFrame(data=test_obs_reshape, index = time, columns=title_states)
+        cat_type = pd.CategoricalDtype(categories=[0, 1, 2],ordered=True)
+        self.df['actions'] = self.action_trajectory
+        self.df['actions_cat'] = self.df.actions.astype(cat_type)
+        self.df['rewards'] = self.rewards
+        return self.df
 
-        fig, ax = plt.subplots(nrows=3, ncols=1, figsize = (10,15))
+    def plot(self, savefig_filename=None):
+        df = self.dataframe()
+        fig, axes = plt.subplots(nrows=3, ncols=1, figsize = (10,15))
 
-        ax[0].plot(time, test_obs_reshape)
-        #ax[0].set_ylim(des[i]-50, des[i]+50)
-        ax[0].set_title('SEIR', fontsize=15)
-        #ax[0].set_xlabel('Time (days)', fontsize=10)
-        ax[0].set_ylim(0, self.popu)
-        #ax[0].set_label('Label via method')
-        ax[0].legend()
+        df.iloc[:,:4].plot.area(ax=axes[0], stacked=True)
+        axes[0].set_ylim(0, self.popu)
 
-        ax[1].step(time, self.action_trajectory, label='actions')
-        ax[1].set_title('Actions', fontsize=15)
-        #ax[1].set_xlabel('Time (days)', fontsize=10)
-        ax[1].set_label('Label via method')
-        ax[1].legend()
+        df['actions'].plot(ax=axes[1], label = 'actions')
+        axes[1].set_ylabel('actions', fontsize=15)
+        axes[1].set_ylim(-0.5, 2.5)
 
-        ax[2].plot(time, self.rewards, label='rewards')
-        ax[2].set_title('Rewards', fontsize=15)
-        ax[2].set_xlabel('Time (days)', fontsize=10)
-        ax[2].set_label('Label via method')
-        ax[2].legend()
-
+        df['rewards'].plot(ax=axes[2], label = 'rewards')
+        axes[2].set_ylabel('Rewards', fontsize=15)
+        axes[2].set_xlabel('Time (days)', fontsize=15)
         if savefig_filename is not None:
             assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
             plt.savefig(savefig_filename, format = 'pdf')
