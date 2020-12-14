@@ -1,3 +1,5 @@
+#!/bin/bash 
+
 #PiPy packages
 import os
 import argparse
@@ -31,6 +33,8 @@ import datetime
 from env.SEIR_v0_2 import SEIR_v0_2
 from RL_algo.PPO import AC_model, PPOAgent
 
+#0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+#/home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
 
 #---------------------------------------------------------------------
 if __name__ == '__main__':
@@ -96,9 +100,9 @@ if __name__ == '__main__':
     print("testing the agent")
     agent.test(savefig_filename='fin_plot.pdf')
     data = dict(
-        states   = agent.env.state_trajectory,
-        actions  = agent.env.action_trajectory,
-        rewards  = agent.env.rewards,
+        states   = agent.test_env.state_trajectory,
+        actions  = agent.test_env.action_trajectory,
+        rewards  = agent.test_env.rewards,
         scores   = agent.scores,
         averages = agent.averages
     )
