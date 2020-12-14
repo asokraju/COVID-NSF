@@ -28,6 +28,7 @@ from joblib import dump, load
 from scipy.io import savemat
 import datetime
 import json
+import matplotlib.pyplot as plt
 
 #Local Packages
 from env.SEIR_v0_2 import SEIR_v0_2
@@ -116,3 +117,13 @@ if __name__ == '__main__':
     )
     file_name = args['summary_dir'] + "/" + 'data_' + datetime.datetime.now().strftime("%y-%m-%d-%H-%M") + '.mat'
     savemat(file_name, data)
+
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize = (8,12))
+    axes[0].plot(agent.averages)
+    axes[0].set_ylabel('average_scores', fontsize=15)
+
+    axes[1].plot(agent.scores)
+    axes[1].set_ylabel('scores', fontsize=15)
+    axes[1].set_xlabel('Episodes', fontsize=15)
+    savefig_filename = args['summary_dir'] + "/" + 'SCORES.pdf'
+    plt.savefig(savefig_filename, format = 'pdf')
