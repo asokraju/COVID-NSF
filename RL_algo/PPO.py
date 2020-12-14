@@ -28,14 +28,14 @@ def AC_model(input_shape, action_dim, lr):
     defines Actor and Critic models that shares the input and the hidden layers
     """
     input_layer = Input(input_shape)
-    layer_1 = Dense(units=30, activation='elu', kernel_initializer='he_uniform')(input_layer)
+    layer_1 = Dense(units=128, activation='elu', kernel_initializer='he_uniform')(input_layer)
     actions = Dense(units=action_dim, activation='softmax', kernel_initializer='he_uniform')(layer_1)
     values = Dense(units=1, activation='linear', kernel_initializer='he_uniform')(layer_1)
 
     def ppo_loss(y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, predictions_old, actions_onehot = y_true[:, :1], y_true[:, 1:1+action_dim], y_true[:, 1+action_dim:]
-        EPSILON = 0.2
+        EPSILON = 0.1
         C = 5e-3
         prob = y_pred * actions_onehot
         old_prob = predictions_old * actions_onehot
