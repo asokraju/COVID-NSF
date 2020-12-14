@@ -67,7 +67,7 @@ class SEIR_v0_2(gym.Env):
         self.Ts           = sampling_time
         self.time_steps   = int((self.Ts) / self.dt)
        
-        self.popu         = 100000
+        self.popu         = 1e5 #100000
         self.trainNoise   = False
         self.weight       = 0.5 #reward weighting
 
@@ -153,7 +153,7 @@ class SEIR_v0_2(gym.Env):
         economicCost = self.eco_costs[action] * self.Ts
 
         # Public health Cost increases with increase in Infected people.
-        publichealthCost   =  (0.00001 * self.state[2]) * self.Ts
+        publichealthCost   =  (1e-5 * self.state[2]) * self.Ts
         
         # Rewards
         reward = - self.weight * economicCost - (1 - self.weight) * publichealthCost
