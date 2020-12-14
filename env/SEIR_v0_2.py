@@ -153,7 +153,7 @@ class SEIR_v0_2(gym.Env):
         economicCost = self.eco_costs[action] * self.Ts
 
         # Public health Cost increases with increase in Infected people.
-        publichealthCost   =  (1 - 0.00001 * self.state[2]) * self.Ts
+        publichealthCost   =  (0.00001 * self.state[2]) * self.Ts
         
         # Rewards
         reward = - self.weight * economicCost - (1 - self.weight) * publichealthCost
