@@ -27,7 +27,7 @@ from sklearn.preprocessing import StandardScaler
 from joblib import dump, load
 from scipy.io import savemat
 import datetime
-
+import json
 
 #Local Packages
 from env.SEIR_v0_2 import SEIR_v0_2
@@ -71,6 +71,14 @@ if __name__ == '__main__':
     parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=10)
 
     args = vars(parser.parse_args())
+
+    #saving the arguments to a text file
+    try:
+        args_path = args['summary_dir']+'/args.txt'
+        with open(args[args_path, 'w') as file:
+            file.write(json.dumps(args)) # use `json.loads` to do the reverse
+    except:
+        pass
     
     pp.pprint(args)
     try:
