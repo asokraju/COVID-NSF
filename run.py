@@ -75,11 +75,11 @@ if __name__ == '__main__':
     #saving the arguments to a text file
     try:
         args_path = args['summary_dir']+'/args.txt'
-        with open(args[args_path, 'w') as file:
+        with open(args_path, 'w') as file:
             file.write(json.dumps(args)) # use `json.loads` to do the reverse
     except:
         pass
-    
+
     pp.pprint(args)
     try:
         os.makedir(args['summary_dir'])
