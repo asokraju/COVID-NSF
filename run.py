@@ -69,7 +69,7 @@ if __name__ == '__main__':
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=0.0001)
-    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=30)
+    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=4)
 
     args = vars(parser.parse_args())
 

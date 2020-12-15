@@ -1,0 +1,1 @@
+{"summary_dir": "/home/kosaraju/COVID-NSF/results/0.5", "use_gpu": true, "save_model": true, "load_model": true, "random_seed": 1754, "max_episodes": 2500, "exp_name": "seir", "gamma": 0.95, "sim_length": 100, "sampling_time": 1, "discretization_time": 5, "env_weight": 0.5, "params": 400, "lr": 0.0001, "EPOCHS": 4}
