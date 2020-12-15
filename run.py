@@ -56,7 +56,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
     
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1500)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=2500)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     

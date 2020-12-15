@@ -29,8 +29,12 @@ def AC_model(input_shape, action_dim, lr):
     """
     input_layer = Input(input_shape)
     layer_1 = Dense(units=128, activation='elu', kernel_initializer='he_uniform')(input_layer)
-    actions = Dense(units=action_dim, activation='softmax', kernel_initializer='he_uniform')(layer_1)
-    values = Dense(units=1, activation='linear', kernel_initializer='he_uniform')(layer_1)
+
+    layer_a = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(input_layer)
+    actions = Dense(units=action_dim, activation='softmax', kernel_initializer='he_uniform')(layer_a)
+
+    layer_v = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(layer_1)
+    values = Dense(units=1, activation='linear', kernel_initializer='he_uniform')(layer_v)
 
     def ppo_loss(y_true, y_pred):
         # Defined in https://arxiv.org/abs/1707.06347
@@ -93,22 +97,23 @@ class PPOAgent:
 
     def _standardizing_state(self):
         path = self.path + "/" + self.Model_name + 'std_scaler.bin'
-        try:
-            self.std_scalar=load(path)
-        except:
-            print("fitting a StandardScaler() to scale the states")
-            states = []
-            for _ in range(100):  
-                self.env.reset()  
-                d = False
-                while not d:
-                    s, r, d, _ =  self.env.step(self.env.action_space.sample())
-                    states.append(list(s))
-            X = np.array(states)
-            self.std_scalar = StandardScaler()
-            self.std_scalar.fit(X)
-            print("done!")
-            dump(self.std_scalar, path, compress=True)
+        # try:
+        #     self.std_scalar=load(path)
+        # except:
+        #     pass
+        print("fitting a StandardScaler() to scale the states")
+        states = []
+        for _ in range(100):  
+            self.env.reset()  
+            d = False
+            while not d:
+                s, r, d, _ =  self.env.step(self.env.action_space.sample())
+                states.append(list(s))
+        X = np.array(states)
+        self.std_scalar = StandardScaler()
+        self.std_scalar.fit(X)
+        print("done!")
+        dump(self.std_scalar, path, compress=True)
 
     def predict_actions(self, state):
         """
