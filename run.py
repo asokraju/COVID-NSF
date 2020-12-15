@@ -64,12 +64,12 @@ if __name__ == '__main__':
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=100)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=1)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=1.0)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
-    parser.add_argument('--lr', help='learning rate', type = float, default=0.0001)
-    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=4)
+    parser.add_argument('--lr', help='learning rate', type = float, default=0.00001)
+    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=1)
 
     args = vars(parser.parse_args())
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         )
     
 
-    agent.run()
+    # agent.run()
 
     #testing
     print("testing the agent")
