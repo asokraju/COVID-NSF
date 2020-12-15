@@ -26,6 +26,7 @@ from scipy.io import savemat
 def AC_model(input_shape, action_dim, lr):
     """
     defines Actor and Critic models that shares the input and the hidden layers
+    Updates Actor and Critic individually
     """
     input_layer = Input(input_shape)
     layer_1 = Dense(units=128, activation='elu', kernel_initializer='he_uniform')(input_layer)
@@ -60,7 +61,44 @@ def AC_model(input_shape, action_dim, lr):
     #print(Critic.summary())
     return Actor, Critic
 
+def AC_model_new(input_shape, action_dim, lr):
+    """
+    defines Actor and Critic models that shares the input and the hidden layers
+    updated Actor and Critic together
+    """
+    input_layer = Input(input_shape)
+    layer_1 = Dense(units=128, activation='elu', kernel_initializer='he_uniform')(input_layer)
 
+    layer_a = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(input_layer)
+    actions = Dense(units=action_dim, activation='softmax', kernel_initializer='he_uniform', name='actions')(layer_a)
+
+    layer_v = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(layer_1)
+    values = Dense(units=1, activation='linear', kernel_initializer='he_uniform', name='values')(layer_v)
+
+    def ppo_loss(y_true, y_pred):
+        # Defined in https://arxiv.org/abs/1707.06347
+        advantages, predictions_old, actions_onehot = y_true[:, :1], y_true[:, 1:1+action_dim], y_true[:, 1+action_dim:]
+        EPSILON = 0.1
+        C = 5e-3
+        prob = y_pred * actions_onehot
+        old_prob = predictions_old * actions_onehot
+        r = prob / (old_prob +1e-10)
+        
+        p1 = r * advantages
+        p2 = K.clip(r, min_value=1-EPSILON, max_value=1+EPSILON) * advantages
+        entropy_loss = -prob * K.log(prob + 1e-10)
+
+        loss = -K.mean(K.minimum(p1, p2) + C * entropy_loss)
+        return loss
+
+    lossWeights  = {'actions':0.5, 'values':0.5}
+    lossFuns     = {'actions':ppo_loss, 'values':'mse'}
+    Actor_Critic = Model(inputs = input_layer, outputs = [actions, values])
+    Actor_Critic.compile(optimizer=RMSprop(lr=lr), loss=lossFuns, loss_weights=lossWeights)
+
+    Actor = Model(inputs = input_layer, outputs = actions)
+    Critic = Model(inputs = input_layer, outputs = values)
+    return Actor, Critic, Actor_Critic
 
 
 ################################################################################################################
@@ -85,7 +123,8 @@ class PPOAgent:
 
         self.EPSIODES, self.episode, self.max_avg_reward = EPSIODES, 0, -100 #max_avg_reward depends on the environment
         self.scores, self.averages, self.episodes = [], [], []
-        self.Actor, self.Critic = AC_model(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
+        # self.Actor, self.Critic = AC_model(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
+        self.Actor, self.Critic, self.Actor_Critic = AC_model_new(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
 
         self.Model_name  = 'PPO_' + exp_name +'_'
         self.Actor_name  = self.path + "/" + self.Model_name + '_Actor.h5'
@@ -152,8 +191,11 @@ class PPOAgent:
         
         y_true = np.hstack([advantages, predictions, actions])
 
-        self.Actor.fit(states, y_true, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
-        self.Critic.fit(states, discounted_r, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
+        # self.Actor.fit(states, y_true, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
+        # self.Critic.fit(states, discounted_r, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
+        Y = [y_true, discounted_r]
+        self.Actor_Critic.fit(states, Y, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
+
 
     def run(self):
         for e in range(self.EPSIODES):
