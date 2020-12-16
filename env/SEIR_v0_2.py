@@ -117,7 +117,6 @@ class SEIR_v0_2(gym.Env):
         self.state = np.array([init_S, init_E, init_I, 0], dtype=float)
 
     def set_state(self, state):
-        tot_state = sum(state)
         err_msg = "%s is Invalid. S+E+I+R not equal to %s"  % (state, self.popu)
         assert self.popu==sum(state), err_msg
         self.state = state

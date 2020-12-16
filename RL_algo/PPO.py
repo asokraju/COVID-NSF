@@ -54,7 +54,7 @@ def AC_model(input_shape, action_dim, lr):
         return loss
 
     Actor = Model(inputs = input_layer, outputs = actions)
-    Actor.compile(loss = ppo_loss, optimizer=RMSprop(lr=lr))
+    Actor.compile(loss = ppo_loss, optimizer=Adam(lr=lr))
     #print(Actor.summary())
     Critic = Model(inputs = input_layer, outputs = values)
     Critic.compile(loss='mse', optimizer=RMSprop(lr=lr))
@@ -79,7 +79,7 @@ def AC_model_new(input_shape, action_dim, lr):
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, predictions_old, actions_onehot = y_true[:, :1], y_true[:, 1:1+action_dim], y_true[:, 1+action_dim:]
         EPSILON = 0.1
-        C = 5e-3
+        C = 5e-2
         prob = y_pred * actions_onehot
         old_prob = predictions_old * actions_onehot
         r = prob / (old_prob +1e-10)
