@@ -110,7 +110,8 @@ class PPOAgent:
         lr = 0.0001, 
         EPOCHS = 10,
         path = None,
-        gamma = 0.95
+        gamma = 0.95,
+        traj_per_episode = 4
         ):
         self.exp_name = exp_name
         self.env = env # SEIR_v0_2(discretizing_time = 5, sampling_time = 1, sim_length = 100)
@@ -120,7 +121,7 @@ class PPOAgent:
         self.lr = lr
         self.gamma = gamma
         self.path = path
-
+        self.traj_per_episode =traj_per_episode
         self.EPSIODES, self.episode, self.max_avg_reward = EPSIODES, 0, -100 #max_avg_reward depends on the environment
         self.scores, self.averages, self.episodes = [], [], []
         # self.Actor, self.Critic = AC_model(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
@@ -197,37 +198,69 @@ class PPOAgent:
         self.Actor_Critic.fit(states, Y, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(rewards))
 
 
+    def samples(self):
+        states, actions, rewards, predictions = [], [], [], []
+        state = self.env.reset()
+        done, score = False, 0
+        while not done:
+            state = self.std_scalar.transform(np.reshape(state, (1,-1)))
+            prediction, action  = self.predict_actions(state)
+            next_state, reward, done, _ = self.env.step(action)
+            actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
+            states.append(state)
+            actions.append(actions_onehot)
+            predictions.append(prediction)
+            rewards.append(reward)
+            state = next_state
+            score += reward
+        states = np.vstack(states)
+        actions = np.vstack(actions)
+        predictions = np.vstack(predictions)
+        discounted_r = np.vstack(self.discount_rewards(rewards))
+        values = self.Critic.predict(states)
+
+        advantages = discounted_r - values
+        
+        y_true = np.hstack([advantages, predictions, actions])
+
+        #Y = [y_true, discounted_r]
+
+        return states, y_true, discounted_r , score     
+
+
     def run(self):
         for e in range(self.EPSIODES):
-            state = self.env.reset()
-            done, score, save_model = False, 0, ""
+            save_model = ''
             #memory buffers of states, actions, rewards, predicted action propabilities
-            states, actions, rewards, predictions = [], [], [], []
-            while not done:
-                state = self.std_scalar.transform(np.reshape(state, (1,-1)))
-                prediction, action  = self.predict_actions(state)
-                next_state, reward, done, _ = self.env.step(action)
-                actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
-                states.append(state)
-                actions.append(actions_onehot)
-                predictions.append(prediction)
-                rewards.append(reward)
-                state = next_state
-                score += reward 
-                if done:
-                    self.scores.append(score)
-                    average = sum(self.scores[-50:]) / len(self.scores[-50:])
-                    self.averages.append(average)
-                    self.episodes.append(self.episode)
-                    if average >= self.max_avg_reward :
-                        self.max_avg_reward = average
-                        self.save()
-                        save_model = 'SAVING'
-                    else:
-                        save_model = ""
-                    print("episode: {}/{}, score: {}, average: {:.2f} {}".format(e, self.EPSIODES, score, average, save_model))
-                    self.replay(states, actions, rewards, predictions)
-    
+            states, y_true, discounted_r, score = [], [], [], []
+            for _ in range(self.traj_per_episode):
+                states_new, y_true_new, discounted_r_new, score_new = self.samples()
+
+                states.append(states_new)
+                y_true.append(y_true_new)
+                discounted_r.append(discounted_r_new)
+                score.append(score_new)
+            
+            states          = np.vstack(states)
+            y_true          = np.vstack(y_true)
+            discounted_r    = np.vstack(discounted_r)
+            Y               = [y_true, discounted_r]
+
+            mean_score = np.mean(score)
+            self.scores.append(mean_score)
+            average = sum(self.scores[-50:]) / len(self.scores[-50:])
+            self.averages.append(average)
+            self.episodes.append(self.episode)
+            if average >= self.max_avg_reward :
+                self.max_avg_reward = average
+                self.save()
+                save_model = 'SAVING'
+            else:
+                save_model = ""
+            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(e, self.EPSIODES, mean_score, average, save_model))
+            self.Actor_Critic.fit(states, Y, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+
+
     def load(self):
         if os.path.isfile(self.Actor_name):
             print('loading Actor weights')
@@ -242,9 +275,9 @@ class PPOAgent:
         self.load()
         test_env = self.test_env #SEIR_v0_2(discretizing_time = 5, sampling_time = 1, sim_length = 100)
         state = test_env.reset()
-        done, score, save_model = False, 0, ""
+        done = False
         # memory buffers of states, actions, rewards, predicted action propabilities
-        states, actions, rewards, predictions = [], [], [], []
+        # states, actions, rewards, predictions = [], [], [], []
         while not done:
             state = self.std_scalar.transform(np.reshape(state, (1,-1)))
             _, action  = self.predict_actions(state)
