@@ -105,7 +105,7 @@ if __name__ == '__main__':
         )
     
 
-    # agent.run()
+    agent.run()
 
     #testing
     print("testing the agent")
