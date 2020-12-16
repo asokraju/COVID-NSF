@@ -112,7 +112,11 @@ if __name__ == '__main__':
         traj_per_episode =   args['traj_per_episode']
         )
     
-
+    try:
+        agent.load()
+    except:
+        pass
+    
     agent.run()
 
     #testing
