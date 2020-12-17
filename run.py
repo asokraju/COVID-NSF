@@ -54,23 +54,25 @@ if __name__ == '__main__':
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
-    
+
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=400)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=600)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
-    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=5)
+    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
 
     #model/env paramerterss
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=1)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.6)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.4)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=1e-4)
-    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=2)
+    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=2)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.2)
+    parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=1e-2)
 
     args = vars(parser.parse_args())
 
@@ -90,13 +92,13 @@ if __name__ == '__main__':
 
     env = SEIR_v0_2(
         discretizing_time = args['discretization_time'], 
-        sampling_time = args['sampling_time'], 
-        sim_length = args['sim_length']
+        sampling_time     = args['sampling_time'], 
+        sim_length        = args['sim_length']
         )
     test_env = SEIR_v0_2(
         discretizing_time = args['discretization_time'], 
-        sampling_time = args['sampling_time'], 
-        sim_length = args['sim_length'])
+        sampling_time     = args['sampling_time'], 
+        sim_length        = args['sim_length'])
 
     env.weight, test_env.weight= args['env_weight'], args['env_weight']
     
@@ -109,14 +111,16 @@ if __name__ == '__main__':
         EPOCHS           =   args['EPOCHS'],
         path             =   args['summary_dir'],
         gamma            =   args['gamma'],
-        traj_per_episode =   args['traj_per_episode']
-        )
+        traj_per_episode =   args['traj_per_episode'],
+        EPSILON          =   args['EPSILON'],
+        C                =   args['C']
+        )       
     
-    try:
-        agent.load()
-    except:
-        pass
-    
+    # try:
+    #     agent.load()
+    # except:
+    #     pass
+
     agent.run()
 
     #testing

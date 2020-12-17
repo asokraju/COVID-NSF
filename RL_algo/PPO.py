@@ -61,7 +61,7 @@ def AC_model(input_shape, action_dim, lr):
     #print(Critic.summary())
     return Actor, Critic
 
-def AC_model_new(input_shape, action_dim, lr):
+def AC_model_new(input_shape, action_dim, lr, EPSILON, C):
     """
     defines Actor and Critic models that shares the input and the hidden layers
     updated Actor and Critic together
@@ -75,11 +75,12 @@ def AC_model_new(input_shape, action_dim, lr):
     layer_v = Dense(units=32, activation='elu', kernel_initializer='he_uniform')(layer_1)
     values = Dense(units=1, activation='linear', kernel_initializer='he_uniform', name='values')(layer_v)
 
-    def ppo_loss(y_true, y_pred):
+    def ppo_loss(y_true, y_pred, EPSILON, C):
+
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, predictions_old, actions_onehot = y_true[:, :1], y_true[:, 1:1+action_dim], y_true[:, 1+action_dim:]
-        EPSILON = 0.1
-        C = 5e-2
+        # EPSILON = 0.1
+        # C = 5e-2
         prob = y_pred * actions_onehot
         old_prob = predictions_old * actions_onehot
         r = prob / (old_prob +1e-10)
@@ -90,9 +91,15 @@ def AC_model_new(input_shape, action_dim, lr):
 
         loss = -K.mean(K.minimum(p1, p2) + C * entropy_loss)
         return loss
+    
+    def ppo_parametrized(EPSILON, C):
+        def ppo_loss_fun(y_true, y_pred):
+            return ppo_loss(y_true, y_pred, EPSILON, C)
+        return ppo_loss_fun
 
+    
     lossWeights  = {'actions':0.5, 'values':0.5}
-    lossFuns     = {'actions':ppo_loss, 'values':'mse'}
+    lossFuns     = {'actions':ppo_parametrized(EPSILON, C), 'values':'mse'}
     Actor_Critic = Model(inputs = input_layer, outputs = [actions, values])
     Actor_Critic.compile(optimizer=RMSprop(lr=lr), loss=lossFuns, loss_weights=lossWeights)
 
@@ -111,7 +118,9 @@ class PPOAgent:
         EPOCHS = 10,
         path = None,
         gamma = 0.95,
-        traj_per_episode = 4
+        traj_per_episode = 4,
+        EPSILON = 0.1,
+        C = 1e-2
         ):
         self.exp_name = exp_name
         self.env = env # SEIR_v0_2(discretizing_time = 5, sampling_time = 1, sim_length = 100)
@@ -119,18 +128,21 @@ class PPOAgent:
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = 3# specific to SEIR model self.env.action_space.n
         self.lr = lr
+        self.EPSILON = EPSILON
+        self.C = C
+
         self.gamma = gamma
         self.path = path
         self.traj_per_episode =traj_per_episode
         self.EPSIODES, self.episode, self.max_avg_reward = EPSIODES, 0, -100 #max_avg_reward depends on the environment
         self.scores, self.averages, self.episodes = [], [], []
         # self.Actor, self.Critic = AC_model(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
-        self.Actor, self.Critic, self.Actor_Critic = AC_model_new(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
+        self.Actor, self.Critic, self.Actor_Critic = AC_model_new(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr, EPSILON=self.EPSILON, C=self.C)
 
         self.Model_name  = 'PPO_' + exp_name +'_'
         self.Actor_name  = self.path + "/" + self.Model_name + '_Actor.h5'
         self.Critic_name = self.path + "/" + self.Model_name + '_Critic.h5'
-
+        self.Actor_Critic_name = self.path + "/" + self.Model_name + '_Actor_Critic.h5' 
         self.EPOCHS = EPOCHS
         self.std_scalar = StandardScaler()
         self._standardizing_state()
@@ -166,8 +178,10 @@ class PPOAgent:
         return prediction, action
     
     def save(self):
+        # print("Saving Actor Critic Models")
         self.Actor.save(self.Actor_name)
         self.Critic.save(self.Critic_name)
+        self.Actor_Critic.save(self.Actor_Critic_name)
     
     def discount_rewards(self, rewards):
         reward_sum = 0
@@ -270,6 +284,10 @@ class PPOAgent:
             print('loading Critic weights')
             #Actor_name = self.path + "/" + self.Model_name + '_Actor.h5'
             self.Critic = load_model(self.Critic_name, compile=False)
+        if os.path.isfile(self.Actor_Critic_name):
+            print('loading Actor_Critic weights')
+            #Actor_Critic_name = self.path + "/" + self.Model_name + '_Actor_Critic_name.h5'
+            self.Critic = load_model(self.Actor_Critic_name, compile=False)
 
     def test(self, savefig_filename = None):
         self.load()
