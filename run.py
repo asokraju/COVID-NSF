@@ -71,8 +71,8 @@ if __name__ == '__main__':
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=1e-4)
     parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=2)
-    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.2)
-    parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=1e-2)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.05)
+    parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
 
     args = vars(parser.parse_args())
 
