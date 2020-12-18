@@ -15,7 +15,7 @@ from gym.utils import seeding
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten
+from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten, GRU
 from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorflow.keras import backend as K
 
@@ -39,15 +39,13 @@ from RL_algo.PPO import AC_model, PPOAgent
 
 #---------------------------------------------------------------------
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
+    parser = argparse.ArgumentParser(description='provide arguments for PPO agent')
     #loading the environment to get it default params
     env = SEIR_v0_2()
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     #--------------------------------------------------------------------
-    parser = argparse.ArgumentParser(description='provide arguments for DDPG agent')
-
     #general params
     parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results')
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
@@ -56,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
 
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=600)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=300)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
@@ -65,14 +63,16 @@ if __name__ == '__main__':
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=1)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.4)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
-    parser.add_argument('--lr', help='learning rate', type = float, default=1e-4)
-    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=2)
-    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.05)
+    parser.add_argument('--lr', help='learning rate', type = float, default=5e-4)
+    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=10)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.2)
     parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
+    parser.add_argument('--rnn', help='Use reccurent neural networks?', type = bool, default=True)
+    parser.add_argument('--rnn_steps', help='if rnn = True, then how many time steps do we see backwards',type =int, default=2)
 
     args = vars(parser.parse_args())
 
@@ -89,6 +89,11 @@ if __name__ == '__main__':
         os.makedir(args['summary_dir'])
     except:
         pass
+    
+    #setting random seed
+    np.random.seed(args['random_seed'])
+    random.seed(args['random_seed'])
+    tf.random.set_seed(args['random_seed'])
 
     env = SEIR_v0_2(
         discretizing_time = args['discretization_time'], 
@@ -99,9 +104,12 @@ if __name__ == '__main__':
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'])
+    
 
     env.weight, test_env.weight= args['env_weight'], args['env_weight']
-    
+    env.seed(args['random_seed'])
+    test_env.seed(args['random_seed'])
+
     agent = PPOAgent(
         env              =   env, 
         test_env         =   test_env, 
@@ -113,7 +121,9 @@ if __name__ == '__main__':
         gamma            =   args['gamma'],
         traj_per_episode =   args['traj_per_episode'],
         EPSILON          =   args['EPSILON'],
-        C                =   args['C']
+        C                =   args['C'],
+        rnn              =   args['rnn'],
+        rnn_steps        =   args['rnn_steps']
         )       
     
     # try:
