@@ -59,7 +59,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=400)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
-    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=5)
+    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=5)#---------------
 
     #model/env paramerterss
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
@@ -69,8 +69,8 @@ if __name__ == '__main__':
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
-    parser.add_argument('--lr', help='learning rate', type = float, default=1e-4)
-    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=2)
+    parser.add_argument('--lr', help='learning rate', type = float, default=1e-4)#-------------------
+    parser.add_argument('--EPOCHS', help='Number of epochs for traininga',type =int, default=2)#----------------
 
     args = vars(parser.parse_args())
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
             file.write(json.dumps(args)) # use `json.loads` to do the reverse
     except:
         pass
-
+    
     pp.pprint(args)
     try:
         os.makedir(args['summary_dir'])

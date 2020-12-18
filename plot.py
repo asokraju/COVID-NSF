@@ -27,6 +27,7 @@ def df_gen(file_names, index, col_names):
     state_of_exp = []
     for file in iter(file_names):
         data = loadmat(file)
+        print(data.keys())
         state = np.array(data['states'])[:,index][:100]
         state = state.tolist()
         state_of_exp.append(state)
@@ -53,7 +54,7 @@ def plot(savefig_filename=None):
 
 directory = './results/experiment-3/'
 extension = 'mat'   
-w, mat_file_names = list_files2(directory, extension)
+w, mat_file_names = list_files2(directory, extension)   
 names = ['S', 'E', 'I', 'R']
 S = df_gen(mat_file_names, index =0, col_names = w)
 E = df_gen(mat_file_names, index =1, col_names = w)
