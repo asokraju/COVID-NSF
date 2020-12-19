@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
 
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=300)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=600)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=5e-4)
     parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=10)
-    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.2)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.05)
     parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
     parser.add_argument('--rnn', help='Use reccurent neural networks?', type = bool, default=True)
     parser.add_argument('--rnn_steps', help='if rnn = True, then how many time steps do we see backwards',type =int, default=2)
