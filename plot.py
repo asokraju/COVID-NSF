@@ -52,7 +52,7 @@ def plot(savefig_filename=None):
         plt.show()
 
 
-directory = './results/experiment-3/'
+directory = './results/experiment-5-rnn/'
 extension = 'mat'   
 w, mat_file_names = list_files2(directory, extension)   
 names = ['S', 'E', 'I', 'R']
@@ -63,4 +63,4 @@ R = df_gen(mat_file_names, index =3, col_names = w)
 file_name = './results/exp_3.pdf'
 plot(savefig_filename=file_name)
 # plot()
-print(S.head())
+print(S.tail())
