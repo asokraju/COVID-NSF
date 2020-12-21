@@ -272,7 +272,9 @@ class PPOAgent:
         while not done:
             state = self.std_scalar.transform(np.reshape(state, (1,-1)))
             states.append(state.tolist())
-            prediction, action  = self.predict_actions(states[-self.rnn_steps:])
+            state = np.reshape(states[-self.rnn_steps:], (1, self.rnn_steps, -1))
+            #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
+            prediction, action  = self.predict_actions(state)
             next_state, reward, done, _ = self.env.step(action)
             actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
             actions.append(actions_onehot)
@@ -285,7 +287,7 @@ class PPOAgent:
         predictions = np.vstack(predictions)
         discounted_r = np.vstack(self.discount_rewards(rewards))
         states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - 1)]
-
+        states_rnn = np.reshape(states_rnn, (-1, self.rnn_steps, self.state_dim))
         values = self.Critic.predict(states_rnn)
         advantages = discounted_r - values
         
