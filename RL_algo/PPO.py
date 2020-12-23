@@ -363,6 +363,7 @@ class PPOAgent:
             if self.rnn:
                 states.append(state.tolist())
                 state = states[-self.rnn_steps:]
+                state = np.reshape(state, (1, self.rnn_steps, -1))
             _, action  = self.predict_actions(state)
             state, _, done, _ = test_env.step(action)
         savefig_filename = self.path + "/" + savefig_filename
