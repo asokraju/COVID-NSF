@@ -54,7 +54,7 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
 
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=10)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=200)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=7)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.7)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)

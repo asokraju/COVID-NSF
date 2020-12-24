@@ -15,6 +15,7 @@ from gym import spaces
 from gym.utils import seeding
 
 import numpy as np
+from seaborn import palettes
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten, GRU
@@ -65,7 +66,11 @@ def data_per_exp(sub_dir):
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'])
     test_env.weight = args['env_weight']
-
+    # setting the same initial state for all senarios
+    init_I = 200 # np.random.randint(200, high=500)
+    init_E = 1200 # np.random.randint(900, high=1200)
+    init_S = test_env.popu - init_I - init_E
+    test_env.set_state( np.array([init_S, init_E, init_I, 0], dtype=float))
     #loading the actor and critic and their weights
     Actor_name  = sub_dir + "/" + Model_name + '_Actor.h5'
     Critic_name = sub_dir + "/" + Model_name + '_Critic.h5'
@@ -180,8 +185,9 @@ def plot_act(path, savefig_filename=None):
     Act_melt['action'] = Act_melt.action.map(dict_act)
     Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24 * 7))
     #sns.set()
-    fig, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
-    sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True)
+    _, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
+    pal = {'Lock-down':"Red", 'Open-economy':"Green",'Social distancing':'Blue'}
+    sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True, palette = pal)
     ax.set_title('actions vs time (weeks)')
     # sns.swarmplot(x='weight', y='time',hue='action', data=Act_melt, size =3)
     if savefig_filename is not None:
@@ -191,8 +197,8 @@ def plot_act(path, savefig_filename=None):
         plt.show()
     return A_1, Act_melt
 
-dir = './results/exp-6-7days/'
-# dir = './results/exp-7-7days/'
+dir = './results/exp-7-7days/'
+# dir = './results/exp-6-7days/'
 # dir = './results/experiment-5-rnn/'
 # dir = './results/experiment-4-rnn/'
 
@@ -201,12 +207,12 @@ try:
 except:
     pass
 
-# Uncomment this for generating the data
+# #Uncomment this for generating the data
 # S, E, I, R, A = data(dir)
 # S.to_csv(dir + 'eval/S_eval.csv')
 # E.to_csv(dir + 'eval/E_eval.csv')
 # I.to_csv(dir + 'eval/I_eval.csv')
 # R.to_csv(dir + 'eval/R_eval.csv')
 # A.to_csv(dir + 'eval/act_eval.csv')
-plot(dir, dir + 'eval/eval_states.pdf')
+# plot(dir, dir + 'eval/eval_states.pdf')
 plot_act(dir, dir + 'eval/eval_actions.pdf')
