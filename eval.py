@@ -191,8 +191,8 @@ def plot_act(path, savefig_filename=None):
         plt.show()
     return A_1, Act_melt
 
-# dir = './results/exp-6-7days/'
-dir = './results/exp-7-7days/'
+dir = './results/exp-6-7days/'
+# dir = './results/exp-7-7days/'
 # dir = './results/experiment-5-rnn/'
 # dir = './results/experiment-4-rnn/'
 
@@ -208,5 +208,5 @@ except:
 # I.to_csv(dir + 'eval/I_eval.csv')
 # R.to_csv(dir + 'eval/R_eval.csv')
 # A.to_csv(dir + 'eval/act_eval.csv')
-# plot(dir, dir + 'eval/eval_states.pdf')
+plot(dir, dir + 'eval/eval_states.pdf')
 plot_act(dir, dir + 'eval/eval_actions.pdf')
