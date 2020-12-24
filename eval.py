@@ -178,9 +178,11 @@ def plot_act(path, savefig_filename=None):
     Act_melt = pd.melt(A_1, id_vars=['time'], var_name='weight',value_name= 'action')
     dict_act = {0: 'Lock-down', 1: 'Social distancing', 2:'Open-economy'}
     Act_melt['action'] = Act_melt.action.map(dict_act)
-    Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24))
-    sns.set()
+    Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24 * 7))
+    #sns.set()
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
     sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True)
+    ax.set_title('actions vs time (weeks)')
     # sns.swarmplot(x='weight', y='time',hue='action', data=Act_melt, size =3)
     if savefig_filename is not None:
         assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
@@ -189,10 +191,10 @@ def plot_act(path, savefig_filename=None):
         plt.show()
     return A_1, Act_melt
 
-dir = './results/exp-6-7days/'
-#dir = './results/exp-7-7days/'
+# dir = './results/exp-6-7days/'
+dir = './results/exp-7-7days/'
 # dir = './results/experiment-5-rnn/'
-#dir = './results/experiment-4-rnn/'
+# dir = './results/experiment-4-rnn/'
 
 try:
     os.mkdir(dir + 'eval')
