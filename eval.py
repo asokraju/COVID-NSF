@@ -170,31 +170,24 @@ def plot_act(path, savefig_filename=None):
     exp_w = list(filter(lambda x: x != 'eval', exp_w))
     A = pd.read_csv(path + 'eval/act_eval.csv', index_col=0)
     A = A.astype('category')
-    print(A.head())
-    print(A.info())
-    print(A.columns)
-    percent_a = []
-    for key in A.columns:
-        temp = A[key].value_counts(normalize=False,ascending=False,dropna=False)/A.shape[0]
-        percent_a.append(temp.values)
-    Act_pd = pd.DataFrame(np.array(percent_a).T, columns = exp_w)
-    
-    # print(Act_pd)
-    # sns.barplot(
-    #     data= Act_pd,
-    #     hue = '0.3'
-    # )
-    # plt.show()
-
-    data = Act_pd.values
-    X = np.arange(5)
-    fig = plt.figure()
-    ax = fig.add_axes([0,0,1,1])
-    ax.bar(X + 0.00, data[0], color = 'b', width = 0.25)
-    ax.bar(X + 0.25, data[1], color = 'g', width = 0.25)
-    ax.bar(X + 0.50, data[2], color = 'r', width = 0.25)
-    plt.show()
-    return Act_pd
+    # melting
+    melt_cols = exp_w.copy()
+    melt_cols.insert(0, 'time')
+    A_1 = A.reset_index()
+    A_1.columns = melt_cols
+    Act_melt = pd.melt(A_1, id_vars=['time'], var_name='weight',value_name= 'action')
+    dict_act = {0: 'Lock-down', 1: 'Social distancing', 2:'Open-economy'}
+    Act_melt['action'] = Act_melt.action.map(dict_act)
+    Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24))
+    sns.set()
+    sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True)
+    # sns.swarmplot(x='weight', y='time',hue='action', data=Act_melt, size =3)
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
+        plt.savefig(savefig_filename, format = 'pdf')
+    else:
+        plt.show()
+    return A_1, Act_melt
 
 dir = './results/exp-6-7days/'
 #dir = './results/exp-7-7days/'
@@ -206,11 +199,12 @@ try:
 except:
     pass
 
+# Uncomment this for generating the data
 # S, E, I, R, A = data(dir)
 # S.to_csv(dir + 'eval/S_eval.csv')
 # E.to_csv(dir + 'eval/E_eval.csv')
 # I.to_csv(dir + 'eval/I_eval.csv')
 # R.to_csv(dir + 'eval/R_eval.csv')
 # A.to_csv(dir + 'eval/act_eval.csv')
-
-plot_act(dir, dir + 'eval/eval.pdf')
+# plot(dir, dir + 'eval/eval_states.pdf')
+plot_act(dir, dir + 'eval/eval_actions.pdf')
