@@ -166,10 +166,9 @@ class PPOAgent:
 
     def _standardizing_state(self):
         path = self.path + "/" + self.Model_name + 'std_scaler.bin'
-        try:
+        if os.path.isfile(path):
             self.std_scalar=load(path)
-        except:
-            pass
+        else:
             print("fitting a StandardScaler() to scale the states")
             states = []
             for _ in range(100):  
