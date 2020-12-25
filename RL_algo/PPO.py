@@ -165,9 +165,9 @@ class PPOAgent:
         self._standardizing_state()
 
     def _standardizing_state(self):
-        path = self.path + "/" + self.Model_name + 'std_scaler.bin'
-        if os.path.isfile(path):
-            self.std_scalar=load(path)
+        std_path = self.path + "/" + self.Model_name + 'std_scaler.bin'
+        if os.path.isfile(std_path):
+            self.std_scalar=load(std_path)
         else:
             print("fitting a StandardScaler() to scale the states")
             states = []
@@ -181,7 +181,7 @@ class PPOAgent:
             self.std_scalar = StandardScaler()
             self.std_scalar.fit(X)
             print("done!")
-            dump(self.std_scalar, path, compress=True)
+            dump(self.std_scalar, std_path, compress=True)
 
     def predict_actions(self, state):
         """
