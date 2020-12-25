@@ -260,39 +260,43 @@ class PPOAgent:
 
         return states, y_true, discounted_r , score
 
+    
+    
     def samples_rnn(self):
-        states, actions, rewards, predictions = [], [], [], []
-        state = self.env.reset()
-        for _ in range(self.rnn_steps - 1):
-            state = self.std_scalar.transform(np.reshape(state, (1,-1)))
-            states.append(state.tolist())
-            state, _, _, _ = self.env.step(self.env.action_space.sample())
-
-        done, score = False, 0
-        while not done:
-            state = self.std_scalar.transform(np.reshape(state, (1,-1)))
-            states.append(state.tolist())
-            prediction, action  = self.predict_actions(states[-self.rnn_steps:])
-            next_state, reward, done, _ = self.env.step(action)
-            actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
-            actions.append(actions_onehot)
-            predictions.append(prediction)
-            rewards.append(reward)
-            state = next_state
-            score += reward
-        states = np.vstack(states)
-        actions = np.vstack(actions)
-        predictions = np.vstack(predictions)
-        discounted_r = np.vstack(self.discount_rewards(rewards))
-        states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - 1)]
-
-        values = self.Critic.predict(states_rnn)
-        advantages = discounted_r - values
-        
-        y_true = np.hstack([advantages, predictions, actions])
-
-        #Y = [y_true, discounted_r]
-        return states_rnn, y_true, discounted_r , score     
+            states, actions, rewards, predictions = [], [], [], []
+            state = self.env.reset()
+            for _ in range(self.rnn_steps - 1):
+                state = self.std_scalar.transform(np.reshape(state, (1,-1)))
+                states.append(state.tolist())
+                state, _, _, _ = self.env.step(self.env.action_space.sample())
+    
+            done, score = False, 0
+            while not done:
+                state = self.std_scalar.transform(np.reshape(state, (1,-1)))
+                states.append(state.tolist())
+                state = np.reshape(states[-self.rnn_steps:], (1, self.rnn_steps, -1))
+                #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
+                prediction, action  = self.predict_actions(state)
+                next_state, reward, done, _ = self.env.step(action)
+                actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
+                actions.append(actions_onehot)
+                predictions.append(prediction)
+                rewards.append(reward)
+                state = next_state
+                score += reward
+            states = np.vstack(states)
+            actions = np.vstack(actions)
+            predictions = np.vstack(predictions)
+            discounted_r = np.vstack(self.discount_rewards(rewards))
+            states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - 1)]
+            states_rnn = np.reshape(states_rnn, (-1, self.rnn_steps, self.state_dim))
+            values = self.Critic.predict(states_rnn)
+            advantages = discounted_r - values
+            
+            y_true = np.hstack([advantages, predictions, actions])
+    
+            #Y = [y_true, discounted_r]
+            return states_rnn, y_true, discounted_r , score        
 
     def run(self):
         for e in range(self.EPSIODES):
@@ -361,6 +365,7 @@ class PPOAgent:
             if self.rnn:
                 states.append(state.tolist())
                 state = states[-self.rnn_steps:]
+                state = np.reshape(state, (1, self.rnn_steps, -1))
             _, action  = self.predict_actions(state)
             state, _, done, _ = test_env.step(action)
         savefig_filename = self.path + "/" + savefig_filename
