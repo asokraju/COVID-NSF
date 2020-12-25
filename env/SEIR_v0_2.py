@@ -111,8 +111,8 @@ class SEIR_v0_2(gym.Env):
         return [seed]
     
     def get_state(self):
-        init_I = np.random.randint(200, high=500)
-        init_E = np.random.randint(900, high=1200)
+        init_I = np.random.randint(200, high=500) 
+        init_E = np.random.randint(900, high=1200)  
         init_S = self.popu - init_I - init_E
         self.state = np.array([init_S, init_E, init_I, 0], dtype=float)
 

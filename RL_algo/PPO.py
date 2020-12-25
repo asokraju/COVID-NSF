@@ -286,7 +286,7 @@ class PPOAgent:
         actions = np.vstack(actions)
         predictions = np.vstack(predictions)
         discounted_r = np.vstack(self.discount_rewards(rewards))
-        states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - 1)]
+        states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - self.rnn_steps+1)]
         states_rnn = np.reshape(states_rnn, (-1, self.rnn_steps, self.state_dim))
         values = self.Critic.predict(states_rnn)
         advantages = discounted_r - values

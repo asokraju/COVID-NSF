@@ -207,12 +207,12 @@ try:
 except:
     pass
 
-# #Uncomment this for generating the data
-# S, E, I, R, A = data(dir)
-# S.to_csv(dir + 'eval/S_eval.csv')
-# E.to_csv(dir + 'eval/E_eval.csv')
-# I.to_csv(dir + 'eval/I_eval.csv')
-# R.to_csv(dir + 'eval/R_eval.csv')
-# A.to_csv(dir + 'eval/act_eval.csv')
-# plot(dir, dir + 'eval/eval_states.pdf')
+#Uncomment this for generating the data
+S, E, I, R, A = data(dir)
+S.to_csv(dir + 'eval/S_eval.csv')
+E.to_csv(dir + 'eval/E_eval.csv')
+I.to_csv(dir + 'eval/I_eval.csv')
+R.to_csv(dir + 'eval/R_eval.csv')
+A.to_csv(dir + 'eval/act_eval.csv')
+plot(dir, dir + 'eval/eval_states.pdf')
 plot_act(dir, dir + 'eval/eval_actions.pdf')

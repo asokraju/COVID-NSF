@@ -1,6 +1,6 @@
 #!/bin/bash -i
 
-for gamma in 0.3 0.4 0.5 0.6 0.7
+for weight in 1.0 0.7 0.9 0.8 0.1
 do
-./bash-scripts/batch.sh $gamma
+./bash-scripts/batch.sh $weight
 done
