@@ -66,6 +66,9 @@ def data_per_exp(sub_dir, noise = None):
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'])
     test_env.weight = args['env_weight']
+    test_env.set_state(np.array([98588, 208, 449, 755]))
+    test_env.theta = np.full(shape=1, fill_value=3.37, dtype=float)
+
     # setting the same initial state for all senarios
     init_I = 200 # np.random.randint(200, high=500)
     init_E = 1200 # np.random.randint(900, high=1200)
@@ -135,7 +138,7 @@ def data_per_exp(sub_dir, noise = None):
 def data(exp_dir, noise = None):
     exp_w = os.listdir(exp_dir)
     print(exp_w)
-    exp_w = list(filter(lambda x: x != 'eval', exp_w))
+    exp_w = list(filter(lambda x: x[:4] != 'eval', exp_w))
     print(exp_w)
     S, E, I, R, Act = [], [], [], [], []
     for exp in iter(exp_w):
@@ -156,12 +159,12 @@ def data(exp_dir, noise = None):
     return S_pd, E_pd, I_pd, R_pd, Act_pd
 
 
-def plot(path, savefig_filename=None, snr = 0, format = 'pdf'):
+def plot(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
     name = '_eval' + '_' + str(snr*100)  
-    S = pd.read_csv(path + 'eval/S' + name + '.csv', index_col=0)
-    E = pd.read_csv(path + 'eval/E' + name + '.csv', index_col=0)
-    I = pd.read_csv(path + 'eval/I' + name + '.csv', index_col=0)
-    R = pd.read_csv(path + 'eval/R' + name + '.csv', index_col=0)
+    S = pd.read_csv(path + to_load_sub_dir + '/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + to_load_sub_dir + '/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + to_load_sub_dir + '/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path + to_load_sub_dir +'/R' + name + '.csv', index_col=0)
     fig, axes = plt.subplots(nrows=2, ncols=2, figsize = (10,15))
     sns.barplot(data=S, ax=axes[0, 0])
     sns.barplot(data=E, ax=axes[0, 1])
@@ -180,11 +183,11 @@ def plot(path, savefig_filename=None, snr = 0, format = 'pdf'):
         plt.show()
 
 
-def plot_act(path, savefig_filename=None, snr = 0, format = 'pdf'):
+def plot_act(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
     exp_w = os.listdir(path)
-    exp_w = list(filter(lambda x: x != 'eval', exp_w))
+    exp_w = list(filter(lambda x: x[:4] != 'eval', exp_w))
     name = '_eval' + '_' + str(snr*100)  
-    A = pd.read_csv(path + 'eval/act' + name + '.csv', index_col=0)
+    A = pd.read_csv(path + to_load_sub_dir + '/act' + name + '.csv', index_col=0)
     A = A.astype('category')
     # melting
     melt_cols = exp_w.copy()
@@ -213,25 +216,27 @@ dir = './results/exp-7-7days/'
 # dir = './results/experiment-5-rnn/'
 # dir = './results/experiment-4-rnn/'
 
+to_save_sub_dir = 'eval_yang'
+
 try:
-    os.mkdir(dir + 'eval')
+    os.mkdir(dir + to_save_sub_dir)
 except:
     pass
 
 for noise in range(10):
     snr = noise/10 #signal to noise ratio
     name = '_eval' + '_' + str(snr*100)
-
+    to_save_sub_dir = 'eval_yang'
     #-------
     #uncomment this for the first time
     S, E, I, R, A = data(dir, noise = snr)  
-    S.to_csv(dir + 'eval/S' + name + '.csv')
-    E.to_csv(dir + 'eval/E' + name+ '.csv')
-    I.to_csv(dir + 'eval/I' + name+ '.csv')
-    R.to_csv(dir + 'eval/R' + name+ '.csv')
-    A.to_csv(dir + 'eval/act' + name+ '.csv')
+    S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
+    E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
+    I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
+    R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
+    A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
     #--------
 
-    plot(dir, dir + 'eval/states' + name , snr = snr, format = 'jpg')
-    plot_act(dir, dir + 'eval/actions'+ name , snr = snr, format = 'jpg')
+    plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , snr = snr, format = 'jpg')
+    plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , snr = snr, format = 'jpg')
 
