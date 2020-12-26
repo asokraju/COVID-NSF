@@ -114,9 +114,9 @@ def data_per_exp(sub_dir, noise = None):
         state = std_scalar.transform(np.reshape(state, (1,-1)))
         if noise is not None:
             S_true, E_true, I_true, R_true = state[0][0], state[0][1], state[0][2], state[0][3]
-            I_noisy = I_true * noise
-            S_noisy = S_true + (I_true * (1 - noise) / 2)
-            E_noisy = E_true + (I_true * (1 - noise) / 2)
+            I_noisy = I_true * (1 - noise)
+            S_noisy = S_true + (I_true * (noise) / 2)
+            E_noisy = E_true + (I_true * (noise) / 2)
             state  = np.array([[S_noisy, E_noisy, I_noisy, R_true]])
 
         if args['rnn']:
@@ -174,7 +174,7 @@ def plot(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
     axes[0, 1].set_ylabel('Exposed', fontsize=15)
     axes[1, 0].set_ylabel('Infectious', fontsize=15)
     axes[1, 1].set_ylabel('Removed', fontsize=15)
-    fig.suptitle('Agerage people over 140 days, with ' + str(snr*100) + '% Noise in state estimation' ) # or plt.suptitle('Main title')
+    fig.suptitle('Agerage people over 140 days, with ' + str(snr*100) + '% unreported Infectious people' ) # or plt.suptitle('Main title')
 
     if savefig_filename is not None:
         assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
@@ -224,19 +224,19 @@ except:
     pass
 
 for noise in range(10):
-    snr = noise/10 #signal to noise ratio
+    snr = 1 - noise/10 #signal to noise ratio
     print("RUNNING FOR SNR: {}".format(snr))
 
     name = '_eval' + '_' + str(snr*100)
-    #-------
-    #uncomment this for the first time
-    S, E, I, R, A = data(dir, noise = snr)  
-    S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
-    E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
-    I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
-    R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
-    A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
-    #--------
+    # #-------
+    # #uncomment this for the first time
+    # S, E, I, R, A = data(dir, noise = snr)  
+    # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
+    # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
+    # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
+    # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
+    # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
+    # #--------
 
     plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , snr = snr, format = 'jpg')
     plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , snr = snr, format = 'jpg')
