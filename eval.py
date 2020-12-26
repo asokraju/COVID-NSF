@@ -195,7 +195,7 @@ def plot_act(path, savefig_filename=None):
         plt.savefig(savefig_filename, format = 'pdf')
     else:
         plt.show()
-    return A_1, Act_melt
+    return A_1, Act_melt 
 
 dir = './results/exp-7-7days/'
 # dir = './results/exp-6-7days/'
