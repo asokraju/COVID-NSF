@@ -40,7 +40,7 @@ from env.SEIR_v0_2 import SEIR_v0_2
 from RL_algo.PPO import AC_model_new, PPOAgent
 
 
-def data_per_exp(sub_dir):
+def data_per_exp(sub_dir, noise = None):
 
     # loading args dict
     args_file = sub_dir + 'args.txt'
@@ -109,6 +109,13 @@ def data_per_exp(sub_dir):
 
     while not done:
         state = std_scalar.transform(np.reshape(state, (1,-1)))
+        if noise is not None:
+            S_true, E_true, I_true, R_true = state[0][0], state[0][1], state[0][2], state[0][3]
+            I_noisy = I_true * noise
+            S_noisy = S_true + (I_true * (1 - noise) / 2)
+            E_noisy = E_true + (I_true * (1 - noise) / 2)
+            state  = np.array([[S_noisy, E_noisy, I_noisy, R_true]])
+
         if args['rnn']:
             states.append(state.tolist())
             state = states[-args['rnn_steps']:]
@@ -121,11 +128,11 @@ def data_per_exp(sub_dir):
         action = np.random.choice(3, p=prediction)
         ####
         state, _, done, _ = test_env.step(action)
-    savefig_filename = sub_dir  + 'eval.pdf'
-    test_env.plot(savefig_filename = savefig_filename)
+    #savefig_filename = sub_dir  + 'eval.pdf'
+    #test_env.plot(savefig_filename = savefig_filename)
     return test_env.state_trajectory, test_env.action_trajectory
 
-def data(exp_dir):
+def data(exp_dir, noise = None):
     exp_w = os.listdir(exp_dir)
     print(exp_w)
     exp_w = list(filter(lambda x: x != 'eval', exp_w))
@@ -133,7 +140,7 @@ def data(exp_dir):
     S, E, I, R, Act = [], [], [], [], []
     for exp in iter(exp_w):
         print(exp_dir + exp +'/')
-        states, actions = data_per_exp(exp_dir + exp +'/')
+        states, actions = data_per_exp(exp_dir + exp +'/', noise = noise)
         states, actions = np.array(states), np.array(actions)
         S.append(states[:,0])
         E.append(states[:,1])
@@ -149,11 +156,12 @@ def data(exp_dir):
     return S_pd, E_pd, I_pd, R_pd, Act_pd
 
 
-def plot(path, savefig_filename=None):
-    S = pd.read_csv(path + 'eval/S_eval.csv', index_col=0)
-    E = pd.read_csv(path + 'eval/E_eval.csv', index_col=0)
-    I = pd.read_csv(path + 'eval/I_eval.csv', index_col=0)
-    R = pd.read_csv(path + 'eval/R_eval.csv', index_col=0)
+def plot(path, savefig_filename=None, snr = 0):
+    name = '_eval' + '_' + str(snr*100)  
+    S = pd.read_csv(path + 'eval/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + 'eval/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + 'eval/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path + 'eval/R' + name + '.csv', index_col=0)
     _, axes = plt.subplots(nrows=2, ncols=2, figsize = (10,15))
     sns.barplot(data=S, ax=axes[0, 0])
     sns.barplot(data=E, ax=axes[0, 1])
@@ -170,10 +178,11 @@ def plot(path, savefig_filename=None):
         plt.show()
 
 
-def plot_act(path, savefig_filename=None):
+def plot_act(path, savefig_filename=None, snr = 0):
     exp_w = os.listdir(path)
     exp_w = list(filter(lambda x: x != 'eval', exp_w))
-    A = pd.read_csv(path + 'eval/act_eval.csv', index_col=0)
+    name = '_eval' + '_' + str(snr*100)  
+    A = pd.read_csv(path + 'eval/act' + name + '.csv', index_col=0)
     A = A.astype('category')
     # melting
     melt_cols = exp_w.copy()
@@ -207,12 +216,29 @@ try:
 except:
     pass
 
-#Uncomment this for generating the data
-S, E, I, R, A = data(dir)
-S.to_csv(dir + 'eval/S_eval.csv')
-E.to_csv(dir + 'eval/E_eval.csv')
-I.to_csv(dir + 'eval/I_eval.csv')
-R.to_csv(dir + 'eval/R_eval.csv')
-A.to_csv(dir + 'eval/act_eval.csv')
-plot(dir, dir + 'eval/eval_states.pdf')
-plot_act(dir, dir + 'eval/eval_actions.pdf')
+for noise in range(5):
+    snr = noise/10 #signal to noise ratio
+    S, E, I, R, A = data(dir, noise = snr)
+    name = '_eval' + '_' + str(snr*100)  
+    S.to_csv(dir + 'eval/S' + name + '.csv')
+    E.to_csv(dir + 'eval/E' + name+ '.csv')
+    I.to_csv(dir + 'eval/I' + name+ '.csv')
+    R.to_csv(dir + 'eval/R' + name+ '.csv')
+    A.to_csv(dir + 'eval/act' + name+ '.csv')
+    plot(dir, dir + 'eval/states' + name + '.pdf', snr = snr)
+    plot_act(dir, dir + 'eval/actions'+ name + '.pdf', snr = snr)
+
+# #Uncomment this for generating the data
+# noisy, noise = True, 0.1
+# S, E, I, R, A = data(dir, noise = noise)
+# if noisy:
+#     name = 'eval' + '_' + str(noise*100) + '%' + 'Noise.csv' 
+# else:
+#     name = 'eval'+ '.csv' 
+# S.to_csv(dir + 'eval/S_eval.csv')
+# E.to_csv(dir + 'eval/E_eval.csv')
+# I.to_csv(dir + 'eval/I_eval.csv')
+# R.to_csv(dir + 'eval/R_eval.csv')
+# A.to_csv(dir + 'eval/act_eval.csv')
+# plot(dir, dir + 'eval/eval_states.pdf')
+# plot_act(dir, dir + 'eval/eval_actions.pdf')
