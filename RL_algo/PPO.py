@@ -210,7 +210,7 @@ class PPOAgent:
         discounted_rewards.reverse()
         discounted_rewards = np.array(discounted_rewards)
         discounted_rewards -= np.mean(discounted_rewards) # normalizing the result
-        discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation
+        discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation, added 1e-10 for numerical stability
         return discounted_rewards
 
     def replay(self, states, actions, rewards, predictions):
@@ -219,7 +219,7 @@ class PPOAgent:
         predictions = np.vstack(predictions)
         discounted_r = np.vstack(self.discount_rewards(rewards))
         values = self.Critic.predict(states)
-
+  
         advantages = discounted_r - values
         
         y_true = np.hstack([advantages, predictions, actions])

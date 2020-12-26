@@ -63,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=7)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=1.0)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.7)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
