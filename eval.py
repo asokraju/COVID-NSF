@@ -67,7 +67,7 @@ def data_per_exp(sub_dir, noise = None):
         sim_length        = args['sim_length'])
     test_env.weight = args['env_weight']
     test_env.set_state(np.array([98588, 208, 449, 755]))
-    test_env.theta = np.full(shape=1, fill_value=3.37, dtype=float)
+    # test_env.theta = np.full(shape=1, fill_value=3.37, dtype=float)
 
     # setting the same initial state for all senarios
     init_I = 200 # np.random.randint(200, high=500)
@@ -216,7 +216,7 @@ dir = './results/exp-7-7days/'
 # dir = './results/experiment-5-rnn/'
 # dir = './results/experiment-4-rnn/'
 
-to_save_sub_dir = 'eval_yang'
+to_save_sub_dir = 'eval_yang_no_change_theta'
 
 try:
     os.mkdir(dir + to_save_sub_dir)
@@ -225,8 +225,9 @@ except:
 
 for noise in range(10):
     snr = noise/10 #signal to noise ratio
+    print("RUNNING FOR SNR: {}".format(snr))
+
     name = '_eval' + '_' + str(snr*100)
-    to_save_sub_dir = 'eval_yang'
     #-------
     #uncomment this for the first time
     S, E, I, R, A = data(dir, noise = snr)  
