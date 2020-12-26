@@ -156,13 +156,13 @@ def data(exp_dir, noise = None):
     return S_pd, E_pd, I_pd, R_pd, Act_pd
 
 
-def plot(path, savefig_filename=None, snr = 0):
+def plot(path, savefig_filename=None, snr = 0, format = 'pdf'):
     name = '_eval' + '_' + str(snr*100)  
     S = pd.read_csv(path + 'eval/S' + name + '.csv', index_col=0)
     E = pd.read_csv(path + 'eval/E' + name + '.csv', index_col=0)
     I = pd.read_csv(path + 'eval/I' + name + '.csv', index_col=0)
     R = pd.read_csv(path + 'eval/R' + name + '.csv', index_col=0)
-    _, axes = plt.subplots(nrows=2, ncols=2, figsize = (10,15))
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize = (10,15))
     sns.barplot(data=S, ax=axes[0, 0])
     sns.barplot(data=E, ax=axes[0, 1])
     sns.barplot(data=I, ax=axes[1, 0])
@@ -171,14 +171,16 @@ def plot(path, savefig_filename=None, snr = 0):
     axes[0, 1].set_ylabel('Exposed', fontsize=15)
     axes[1, 0].set_ylabel('Infectious', fontsize=15)
     axes[1, 1].set_ylabel('Removed', fontsize=15)
+    fig.suptitle('Agerage people over 140 days, with ' + str(snr*100) + '% Noise in state estimation' ) # or plt.suptitle('Main title')
+
     if savefig_filename is not None:
-        assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
-        plt.savefig(savefig_filename, format = 'pdf')
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        plt.savefig(savefig_filename + '.' + format, format = format)
     else:
         plt.show()
 
 
-def plot_act(path, savefig_filename=None, snr = 0):
+def plot_act(path, savefig_filename=None, snr = 0, format = 'pdf'):
     exp_w = os.listdir(path)
     exp_w = list(filter(lambda x: x != 'eval', exp_w))
     name = '_eval' + '_' + str(snr*100)  
@@ -195,13 +197,13 @@ def plot_act(path, savefig_filename=None, snr = 0):
     Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24 * 7))
     #sns.set()
     _, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
-    pal = {'Lock-down':"Red", 'Open-economy':"Green",'Social distancing':'Blue'}
+    pal = {'Lock-down':"Red", 'Open-economy':"Green",'Social distancing':'Yellow'}
     sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True, palette = pal)
-    ax.set_title('actions vs time (weeks)')
+    ax.set_title('actions vs time (weeks) with ' + str(snr*100) + '% Noise in state estimation')
     # sns.swarmplot(x='weight', y='time',hue='action', data=Act_melt, size =3)
     if savefig_filename is not None:
-        assert isinstance(savefig_filename, str), "filename for saving the figure must be a string"
-        plt.savefig(savefig_filename, format = 'pdf')
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        plt.savefig(savefig_filename + '.' + format, format = format)
     else:
         plt.show()
     return A_1, Act_melt 
@@ -216,29 +218,20 @@ try:
 except:
     pass
 
-for noise in range(5):
+for noise in range(10):
     snr = noise/10 #signal to noise ratio
-    S, E, I, R, A = data(dir, noise = snr)
-    name = '_eval' + '_' + str(snr*100)  
+    name = '_eval' + '_' + str(snr*100)
+
+    #-------
+    #uncomment this for the first time
+    S, E, I, R, A = data(dir, noise = snr)  
     S.to_csv(dir + 'eval/S' + name + '.csv')
     E.to_csv(dir + 'eval/E' + name+ '.csv')
     I.to_csv(dir + 'eval/I' + name+ '.csv')
     R.to_csv(dir + 'eval/R' + name+ '.csv')
     A.to_csv(dir + 'eval/act' + name+ '.csv')
-    plot(dir, dir + 'eval/states' + name + '.pdf', snr = snr)
-    plot_act(dir, dir + 'eval/actions'+ name + '.pdf', snr = snr)
+    #--------
 
-# #Uncomment this for generating the data
-# noisy, noise = True, 0.1
-# S, E, I, R, A = data(dir, noise = noise)
-# if noisy:
-#     name = 'eval' + '_' + str(noise*100) + '%' + 'Noise.csv' 
-# else:
-#     name = 'eval'+ '.csv' 
-# S.to_csv(dir + 'eval/S_eval.csv')
-# E.to_csv(dir + 'eval/E_eval.csv')
-# I.to_csv(dir + 'eval/I_eval.csv')
-# R.to_csv(dir + 'eval/R_eval.csv')
-# A.to_csv(dir + 'eval/act_eval.csv')
-# plot(dir, dir + 'eval/eval_states.pdf')
-# plot_act(dir, dir + 'eval/eval_actions.pdf')
+    plot(dir, dir + 'eval/states' + name , snr = snr, format = 'jpg')
+    plot_act(dir, dir + 'eval/actions'+ name , snr = snr, format = 'jpg')
+
