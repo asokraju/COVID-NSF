@@ -40,7 +40,7 @@ from env.SEIR_v0_2 import SEIR_v0_2
 from RL_algo.PPO import AC_model_new, PPOAgent
 
 
-def data_per_exp(sub_dir, noise = None):
+def data_per_exp(sub_dir, noise = 0):
 
     # loading args dict
     args_file = sub_dir + 'args.txt'
@@ -88,15 +88,15 @@ def data_per_exp(sub_dir, noise = None):
             rnn_steps      =    args['rnn_steps']
             )
     if os.path.isfile(Actor_name):
-        print('loading Actor weights')
+        # print('loading Actor weights')
         #Actor_name = self.path + "/" + self.Model_name + '_Actor.h5'
         Actor = load_model(Actor_name, compile=False)
     if os.path.isfile(Critic_name):
-        print('loading Critic weights')
+        # print('loading Critic weights')
         #Actor_name = self.path + "/" + self.Model_name + '_Actor.h5'
         Critic = load_model(Critic_name, compile=False)
     if os.path.isfile(Actor_Critic_name):
-        print('loading Actor_Critic weights')
+        # print('loading Actor_Critic weights')
         #Actor_Critic_name = self.path + "/" + self.Model_name + '_Actor_Critic_name.h5'
         Critic = load_model(Actor_Critic_name, compile=False)
     
@@ -112,12 +112,12 @@ def data_per_exp(sub_dir, noise = None):
 
     while not done:
         state = std_scalar.transform(np.reshape(state, (1,-1)))
-        if noise is not None:
-            S_true, E_true, I_true, R_true = state[0][0], state[0][1], state[0][2], state[0][3]
-            I_noisy = I_true * (1 - noise)
-            S_noisy = S_true + (I_true * (noise) / 2)
-            E_noisy = E_true + (I_true * (noise) / 2)
-            state  = np.array([[S_noisy, E_noisy, I_noisy, R_true]])
+        # #adding noise
+        S_true, E_true, I_true, R_true = state[0][0], state[0][1], state[0][2], state[0][3]
+        I_noisy = I_true * (1-noise)
+        S_noisy = S_true + (I_true * noise / 2)
+        E_noisy = E_true + (I_true * noise / 2)
+        state  = np.array([[S_noisy, E_noisy, I_noisy, R_true]])
 
         if args['rnn']:
             states.append(state.tolist())
@@ -135,7 +135,7 @@ def data_per_exp(sub_dir, noise = None):
     #test_env.plot(savefig_filename = savefig_filename)
     return test_env.state_trajectory, test_env.action_trajectory
 
-def data(exp_dir, noise = None):
+def data(exp_dir, noise = 0):
     exp_w = os.listdir(exp_dir)
     print(exp_w)
     exp_w = list(filter(lambda x: x[:4] != 'eval', exp_w))
@@ -159,8 +159,8 @@ def data(exp_dir, noise = None):
     return S_pd, E_pd, I_pd, R_pd, Act_pd
 
 
-def plot(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
-    name = '_eval' + '_' + str(snr*100)  
+def plot(path, to_load_sub_dir, savefig_filename=None, noise = 0, format = 'pdf'):
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
     S = pd.read_csv(path + to_load_sub_dir + '/S' + name + '.csv', index_col=0)
     E = pd.read_csv(path + to_load_sub_dir + '/E' + name + '.csv', index_col=0)
     I = pd.read_csv(path + to_load_sub_dir + '/I' + name + '.csv', index_col=0)
@@ -174,19 +174,20 @@ def plot(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
     axes[0, 1].set_ylabel('Exposed', fontsize=15)
     axes[1, 0].set_ylabel('Infectious', fontsize=15)
     axes[1, 1].set_ylabel('Removed', fontsize=15)
-    fig.suptitle('Agerage people over 140 days, with ' + str(snr*100) + '% unreported Infectious people' ) # or plt.suptitle('Main title')
+    fig.suptitle('Agerage people over 140 days, with ' + str(int(np.ceil(noise*100))) + '% unreported Infectious people' ) # or plt.suptitle('Main title')
 
     if savefig_filename is not None:
         assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
         plt.savefig(savefig_filename + '.' + format, format = format)
     else:
         plt.show()
+    plt.close(fig)
 
 
-def plot_act(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pdf'):
+def plot_act(path, to_load_sub_dir, savefig_filename=None, noise = 0, format = 'pdf'):
     exp_w = os.listdir(path)
     exp_w = list(filter(lambda x: x[:4] != 'eval', exp_w))
-    name = '_eval' + '_' + str(snr*100)  
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
     A = pd.read_csv(path + to_load_sub_dir + '/act' + name + '.csv', index_col=0)
     A = A.astype('category')
     # melting
@@ -199,38 +200,101 @@ def plot_act(path, to_load_sub_dir, savefig_filename=None, snr = 0, format = 'pd
     Act_melt['action'] = Act_melt.action.map(dict_act)
     Act_melt['time'] = Act_melt['time'] * (5 / (60 * 24 * 7))
     #sns.set()
-    _, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
+    fig, ax = plt.subplots(nrows=1,ncols=1,figsize = (12,6))
     pal = {'Lock-down':"Red", 'Open-economy':"Green",'Social distancing':'Yellow'}
     sns.stripplot(x='time', y='weight',hue='action', data=Act_melt, size =3, jitter =True, palette = pal)
-    ax.set_title('actions vs time (weeks) with ' + str(snr*100) + '% Noise in state estimation')
+    ax.set_title('actions vs time (weeks) with ' + str(int(np.ceil(noise*100))) + '% unreported Infectious people')
     # sns.swarmplot(x='weight', y='time',hue='action', data=Act_melt, size =3)
     if savefig_filename is not None:
         assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
         plt.savefig(savefig_filename + '.' + format, format = format)
     else:
         plt.show()
+    plt.close(fig)
     return A_1, Act_melt 
+
+def plot_infected(path, to_load_sub_dir, savefig_filename=None, noise = 0, format = 'pdf'):
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    S = pd.read_csv(path + to_load_sub_dir + '/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + to_load_sub_dir + '/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + to_load_sub_dir + '/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path + to_load_sub_dir +'/R' + name + '.csv', index_col=0)
+    Infected = E + I + R
+    Infected.reset_index(inplace=True)
+    Infected['index'] = Infected['index'] * (5/(60 * 24 * 7))
+    # Infected_melt = Infected.melt('index', var_name='Weights',  value_name='Infected')
+    # print(Infected_melt.head())
+
+    fig, axes = plt.subplots(nrows=1, ncols=1, figsize = (15,15))
+    # g = sns.catplot(x="index", y="Infected", hue='Weights', data=Infected_melt)
+    Infected.plot.line(x = 'index', ax = axes, linewidth=7.0)
+    print("done")
+    axes.set_ylabel('Infected', fontsize=15)
+    fig.suptitle('Infected people over 140 days, with ' + str(int(np.ceil(noise*100))) + '% unreported Infectious people' ) # or plt.suptitle('Main title')
+
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        plt.savefig(savefig_filename + '.' + format, format = format)
+    else:
+        plt.show()
+    plt.close(fig)
+
+def plot_infected_weight(path, to_load_sub_dir, savefig_filename=None, weight = 0.5, format = 'pdf'):
+    Overall_infected = []
+    NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+    for noise in iter(NOISE):
+        name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+        S = pd.read_csv(path + to_load_sub_dir + '/S' + name + '.csv', index_col=0)
+        E = pd.read_csv(path + to_load_sub_dir + '/E' + name + '.csv', index_col=0)
+        I = pd.read_csv(path + to_load_sub_dir + '/I' + name + '.csv', index_col=0)
+        R = pd.read_csv(path + to_load_sub_dir +'/R' + name + '.csv', index_col=0)
+        Infected = E + I + R
+        Overall_infected.append(Infected[str(weight)].values.tolist())
+    df = pd.DataFrame(np.array(Overall_infected).T, columns=NOISE)
+    # print(np.shape(Overall_infected))
+    # print(df.head())
+    df.reset_index(inplace=True)
+    df['index'] = df['index'] * (5/(60 * 24 * 7))
+    # # Infected_melt = Infected.melt('index', var_name='Weights',  value_name='Infected')
+    # # print(Infected_melt.head())
+
+    # fig, axes = plt.subplots(nrows=1, ncols=1, figsize = (15,15))
+    # # # g = sns.catplot(x="index", y="Infected", hue='Weights', data=Infected_melt)
+    # df.plot.line(x = 'index', ax = axes, linewidth=7.0)
+    # # print("done")
+    # axes.set_ylabel('Infected', fontsize=15)
+    # fig.suptitle('Infected people over 140 days, for w=' + str(int(np.ceil(weight))) ) # or plt.suptitle('Main title')
+    ax = df.plot(x = 'index', lw=2, colormap='jet', marker='.', markersize=10, title='Infected people over 140 days, for w=' + str(int(np.ceil(weight))) )
+    ax.set_xlabel("x label")
+    ax.set_ylabel("y label")
+
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        ax.get_figure().savefig(savefig_filename + '.' + format, format = format)
+    else:
+        ax.show()
+    # plt.close(fig)
 
 dir = './results/exp-7-7days/'
 # dir = './results/exp-6-7days/'
 # dir = './results/experiment-5-rnn/'
 # dir = './results/experiment-4-rnn/'
 
-to_save_sub_dir = 'eval_yang_no_change_theta'
+to_save_sub_dir = 'eval_yang_no_change_theta_new'
 
 try:
     os.mkdir(dir + to_save_sub_dir)
 except:
     pass
 
-for noise in range(10):
-    snr = 1 - noise/10 #signal to noise ratio
-    print("RUNNING FOR SNR: {}".format(snr))
+NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+for noise in iter(NOISE):
+    print("RUNNING FOR NOISE: {}".format(noise))
 
-    name = '_eval' + '_' + str(snr*100)
-    # #-------
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    #-------
     # #uncomment this for the first time
-    # S, E, I, R, A = data(dir, noise = snr)  
+    # S, E, I, R, A = data(dir, noise = noise)  
     # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
     # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
     # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
@@ -238,6 +302,29 @@ for noise in range(10):
     # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
     # #--------
 
-    plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , snr = snr, format = 'jpg')
-    plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , snr = snr, format = 'jpg')
+    # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
+    # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
+    
+    # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
 
+
+WEIGHTS = [0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,  1.0]
+for w in iter(WEIGHTS):
+    print("RUNNING FOR WEIGHTS: {}".format(w))
+
+    name = '_eval' + '_' + str(w)
+    #-------
+    # #uncomment this for the first time
+    # S, E, I, R, A = data(dir, noise = noise)  
+    # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
+    # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
+    # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
+    # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
+    # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
+    # #--------
+
+    # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
+    # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
+    
+    # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
+    plot_infected_weight(dir, to_save_sub_dir, savefig_filename =  dir + to_save_sub_dir + '/Infected_weight'+ name, weight = w, format = 'jpg')
