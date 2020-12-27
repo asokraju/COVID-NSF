@@ -264,7 +264,7 @@ def plot_infected_weight(path, to_load_sub_dir, savefig_filename=None, weight = 
     # # print("done")
     # axes.set_ylabel('Infected', fontsize=15)
     # fig.suptitle('Infected people over 140 days, for w=' + str(int(np.ceil(weight))) ) # or plt.suptitle('Main title')
-    ax = df.plot(x = 'index', lw=2, colormap='jet', marker='.', markersize=10, title='Infected people over 140 days, for w=' + str(int(np.ceil(weight))) )
+    ax = df.plot(x = 'index', lw=2, colormap='jet', marker='.', markersize=10, title='Infected people over 140 days, for w=' + str(weight))
     ax.set_xlabel("x label")
     ax.set_ylabel("y label")
 
