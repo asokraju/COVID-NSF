@@ -287,44 +287,270 @@ try:
 except:
     pass
 
-NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
-for noise in iter(NOISE):
-    print("RUNNING FOR NOISE: {}".format(noise))
+# NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+# for noise in iter(NOISE):
+#     print("RUNNING FOR NOISE: {}".format(noise))
 
+#     name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+#     #-------
+#     # #uncomment this for the first time
+#     # S, E, I, R, A = data(dir, noise = noise)  
+#     # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
+#     # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
+#     # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
+#     # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
+#     # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
+#     # #--------
+
+#     # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
+#     # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
+    
+#     # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
+
+
+# WEIGHTS = [0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 1.0]
+# for w in iter(WEIGHTS):
+#     print("RUNNING FOR WEIGHTS: {}".format(w))
+
+#     name = '_eval' + '_' + str(w)
+#     #-------
+#     # #uncomment this for the first time
+#     # S, E, I, R, A = data(dir, noise = noise)  
+#     # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
+#     # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
+#     # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
+#     # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
+#     # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
+#     # #--------
+
+#     # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
+#     # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
+    
+#     # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
+#     plot_infected_weight(dir, to_save_sub_dir, savefig_filename =  dir + to_save_sub_dir + '/Infected_weight'+ name, weight = w, format = 'jpg')
+
+
+def plot_IE(dir, to_load_sub_dir, noise = 0, weight = None, format = 'jpg' ):
+    """
+    given a noise value it will generate the figure for every weight 
+    """
+    # NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    path = dir + to_load_sub_dir 
+    print("RUNNING FOR NOISE: {}".format(noise))
     name = '_eval' + '_' + str(int(np.ceil(noise*100)))
     #-------
-    # #uncomment this for the first time
-    # S, E, I, R, A = data(dir, noise = noise)  
-    # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
-    # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
-    # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
-    # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
-    # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
-    # #--------
+    # loading the date of every weight for a given noise
+    # 
+    S = pd.read_csv(path + '/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + '/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + '/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path +'/R' + name + '.csv', index_col=0) 
+    Act = pd.read_csv(path +'/act' + name + '.csv', index_col=0) 
+    EI = I+E
+    labels = ['Exposed', 'Infecetious', 'Exposed and Infecetious']
+    for i, df in enumerate([E, I, EI]):
+        df.reset_index(inplace = True)
+        df['index'] = df['index'] * (5 / (60 * 24 * 7))
+        ax = df.plot(x = 'index', lw=2, colormap='jet', markersize=5, title= labels[i] + ' people over 20 weeks, for Noise =' + str(noise*100) + '%')
+        ax.set_xlabel("Time (weeks)")
+        ax.set_ylabel('# of '+ labels[i] + ' people')
+        ax.set_ylim([0, 25000])
+        savefig_filename = path + '/' + labels[i] + '.' + format
+        if savefig_filename is not None:
+            assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+            ax.get_figure().savefig(savefig_filename + '.' + format, format = format)
+        else:
+            ax.show()
+    #
+    #--------
 
-    # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
-    # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
-    
-    # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
+# plot_IE(dir='./results/exp-7-7days/', to_load_sub_dir='eval_yang_no_change_theta_new')
 
-
-WEIGHTS = [0.0, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,  1.0]
-for w in iter(WEIGHTS):
-    print("RUNNING FOR WEIGHTS: {}".format(w))
-
-    name = '_eval' + '_' + str(w)
+def plot_rewards_noise(dir, to_load_sub_dir, noise = 0, weight = None, format = 'jpg' ):
+    """
+    given a noise value it will generate the figure of rewards for every weight 
+    """
+    # NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    path = dir + to_load_sub_dir 
+    print("RUNNING FOR NOISE: {}".format(noise))
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    eco_costs    = np.array([1, 0.25, 0], dtype=float)
+    eco_costs_dict ={0:eco_costs[0], 1:eco_costs[1], 2: eco_costs[2]}
+    Ts = 7 
     #-------
-    # #uncomment this for the first time
-    # S, E, I, R, A = data(dir, noise = noise)  
-    # S.to_csv(dir + to_save_sub_dir + '/S' + name + '.csv')
-    # E.to_csv(dir + to_save_sub_dir + '/E' + name+ '.csv')
-    # I.to_csv(dir + to_save_sub_dir + '/I' + name+ '.csv')
-    # R.to_csv(dir + to_save_sub_dir + '/R' + name+ '.csv')
-    # A.to_csv(dir + to_save_sub_dir + '/act' + name+ '.csv')
-    # #--------
+    # loading the date of every weight for a given noise
+    # 
+    S = pd.read_csv(path + '/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + '/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + '/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path +'/R' + name + '.csv', index_col=0) 
+    Act = pd.read_csv(path +'/act' + name + '.csv', index_col=0) 
 
-    # plot(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/states' + name , noise = noise, format = 'jpg')
-    # plot_act(dir, to_save_sub_dir,  dir + to_save_sub_dir + '/actions'+ name , noise = noise, format = 'jpg')
+        # Public health Cost increases with increase in Infected people.
+    publichealthCost   =  (1e-4 * I) * Ts
+        # Rewards
+    weights = S.columns
+    rewards = []
+    for w in iter(weights):
+        economicCost = Act[w].map(eco_costs_dict) * Ts
+        temp = - float(w) * economicCost - (1 - float(w)) * publichealthCost[w]
+        rewards.append(temp)
+    Rewards = pd.DataFrame(np.array(rewards).T, columns= weights)
+    Rewards.reset_index(inplace = True)
+    Rewards['index'] = Rewards['index'] * (5 / (60 * 24 * 7))
+    ax = Rewards.plot(x = 'index', lw=2, colormap='jet', markersize=5, title= 'Rewards over 20 weeks, for Noise =' + str(noise*100) + '%')
+    ax.set_xlabel("Time (weeks)")
+    ax.set_ylabel('Rewards')
+    ax.set_ylim([-10, 0])
+    savefig_filename = path + '/' + 'Rewards' +  name
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        ax.get_figure().savefig(savefig_filename + '.' + format, format = format)
+    else:
+        ax.show()
+    #     
+    #
+#     #--------
+# NOISE = np.arange(0,11) / 10.0
+# for n in iter(NOISE):
+#     plot_rewards_noise(dir='./results/exp-7-7days/', to_load_sub_dir='eval_yang_no_change_theta_new', noise = n)
+
+
+
+def plot_rewards_weight(dir, to_load_sub_dir, weight = None, format = 'jpg' ):
+    """
+    given a noise value it will generate the figure of rewards for every weight 
+    """
     
-    # plot_infected(dir, to_save_sub_dir, dir + to_save_sub_dir + '/Infected'+ name, noise = noise, format = 'jpg')
-    plot_infected_weight(dir, to_save_sub_dir, savefig_filename =  dir + to_save_sub_dir + '/Infected_weight'+ name, weight = w, format = 'jpg')
+    eco_costs    = np.array([1, 0.25, 0], dtype=float)
+    eco_costs_dict ={0:eco_costs[0], 1:eco_costs[1], 2: eco_costs[2]}
+    Ts = 7
+    NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+    rewards = []
+    path = dir + to_load_sub_dir 
+    for noise in iter(NOISE):
+        # print("RUNNING FOR NOISE: {}".format(noise))
+        name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+        # S = pd.read_csv(path + '/S' + name + '.csv', index_col=0)
+        # E = pd.read_csv(path + '/E' + name + '.csv', index_col=0)
+        I = pd.read_csv(path + '/I' + name + '.csv', index_col=0)
+        # R = pd.read_csv(path +'/R' + name + '.csv', index_col=0) 
+        Act = pd.read_csv(path +'/act' + name + '.csv', index_col=0) 
+
+        publichealthCost   =  (1e-4 * I[weight]) * Ts
+        economicCost = Act[weight].map(eco_costs_dict) * Ts
+        temp = - float(weight) * economicCost - (1 - float(weight)) * publichealthCost
+        rewards.append(temp)
+
+    NOISE_str = [str(n*100)+'%' for n in NOISE]
+    Rewards = pd.DataFrame(np.array(rewards).T, columns= NOISE_str)
+    Rewards.reset_index(inplace = True)
+    Rewards['index'] = Rewards['index'] * (5 / (60 * 24 * 7))
+    ax = Rewards.plot(x = 'index', lw=2, colormap='jet', markersize=5, title= 'Rewards over 20 weeks, for weight =' + weight)
+    ax.set_xlabel("Time (weeks)")
+    ax.set_ylabel('Rewards')
+    ax.set_ylim([-10, 0.1])
+    savefig_filename = path + '/' + 'Rewards' +  '_eval' + '_weight=' + weight
+    print(savefig_filename)
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        ax.get_figure().savefig(savefig_filename + '.' + format, format = format)
+    else:
+        ax.show()
+
+# path = './results/exp-7-7days/' + 'eval_yang_no_change_theta_new'
+# name = '_eval' + '_' + str(int(np.ceil(0*100)))
+# S = pd.read_csv(path + '/S' + name + '.csv', index_col=0)
+# weights = S.columns
+# for w in iter(weights):
+#     plot_rewards_weight(dir='./results/exp-7-7days/', to_load_sub_dir='eval_yang_no_change_theta_new', weight = w)
+
+
+
+def plot_eco_soc_rewards(dir, to_load_sub_dir, noise = 0, weight = None, format = 'jpg' ):
+    """
+    given a noise value it will generate the figure of rewards for every weight 
+    """
+    # NOISE = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9 , 1.0]
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    path = dir + to_load_sub_dir 
+    print("RUNNING FOR NOISE: {}".format(noise))
+    name = '_eval' + '_' + str(int(np.ceil(noise*100)))
+    eco_costs    = np.array([1, 0.25, 0], dtype=float)
+    eco_costs_dict ={0:eco_costs[0], 1:eco_costs[1], 2: eco_costs[2]}
+    Ts = 7 
+    #-------
+    # loading the date of every weight for a given noise
+    # 
+    S = pd.read_csv(path + '/S' + name + '.csv', index_col=0)
+    E = pd.read_csv(path + '/E' + name + '.csv', index_col=0)
+    I = pd.read_csv(path + '/I' + name + '.csv', index_col=0)
+    R = pd.read_csv(path +'/R' + name + '.csv', index_col=0) 
+    Act = pd.read_csv(path +'/act' + name + '.csv', index_col=0) 
+
+        # Public health Cost increases with increase in Infected people.
+    publichealthCost   =  (1e-4 * I) * Ts
+        # Rewards
+    weights = S.columns
+    eco_cost = []
+
+    for w in iter(weights):
+        economicCost = Act[w].map(eco_costs_dict) * Ts
+        #temp = - float(w) * economicCost - (1 - float(w)) * publichealthCost[w]
+        eco_cost.append(economicCost.values)
+    eco_cost = pd.DataFrame(np.array(eco_cost).T, columns= weights)
+
+    total_cost = []
+    for w in iter(weights):
+        temp = float(w) * publichealthCost[w] + (1-float(w))*eco_cost[w]
+        total_cost.append(temp)
+    Total_Cost = pd.DataFrame(np.array(total_cost).T, columns=weights)
+    # print(publichealthCost.head())
+    eco_cost.reset_index(inplace = True)
+    publichealthCost.reset_index(inplace = True)
+    Total_Cost.reset_index(inplace = True)
+    publichealthCost['index'] = publichealthCost['index'] * (5 / (60 * 24 * 7))
+    eco_cost['index'] = eco_cost['index'] * (5 / (60 * 24 * 7))
+    Total_Cost['index'] = Total_Cost['index'] * (5 / (60 * 24 * 7))
+    # print(publichealthCost.head()) 
+    # print(eco_cost.head())
+    # fig = plt.figure()
+
+    # for frame in [eco_cost, publichealthCost]:
+    #     plt.plot(frame['index'], frame[weights])
+
+    # # plt.xlim(0,18000)
+    # # plt.ylim(0,30)
+    # plt.show()
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize = (16,8))
+    eco_cost.plot(x = 'index', ax=ax[0])
+    publichealthCost.plot(x = 'index', ax=ax[1])
+    Total_Cost.plot(x = 'index', ax=ax[2])
+    ax[0].set_title('Economic Costs')
+    ax[1].set_title('Public Health Costs')
+    ax[2].set_title('Total Costs')
+
+    ax[0].set_xlabel('Time (weeks')
+    ax[1].set_xlabel('Time (weeks')
+    ax[2].set_xlabel('Time (weeks')
+
+    ax[0].set_ylim([-1, 15])
+    ax[1].set_ylim([-1, 15])
+    ax[2].set_ylim([-1, 15])
+
+
+    savefig_filename = path + '/' + 'Costs_total' +  name 
+    if savefig_filename is not None:
+        assert isinstance(savefig_filename + '.' + format, str), "filename for saving the figure must be a string"
+        plt.savefig(savefig_filename + '.' + format, format = format)
+    else:
+        plt.show()
+    #     
+    #
+#     #--------
+# NOISE = np.arange(0,11) / 10.0
+# for n in iter(NOISE):
+plot_eco_soc_rewards(dir='./results/exp-7-7days/', to_load_sub_dir='eval_yang_no_change_theta_new', noise = 0.0)
+
