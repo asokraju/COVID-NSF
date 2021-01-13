@@ -80,7 +80,6 @@ def AC_model_new(input_shape, action_dim, lr, EPSILON, C, rnn, rnn_steps):
     values = Dense(units=1, activation='linear', kernel_initializer='he_uniform', name='values')(layer_v)
 
     def ppo_loss(y_true, y_pred, EPSILON, C):
-
         # Defined in https://arxiv.org/abs/1707.06347
         advantages, predictions_old, actions_onehot = y_true[:, :1], y_true[:, 1:1+action_dim], y_true[:, 1+action_dim:]
         # EPSILON = 0.1
