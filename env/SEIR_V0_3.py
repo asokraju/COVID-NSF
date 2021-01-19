@@ -5,7 +5,7 @@ from gym.utils import seeding
 import pandas as pd
 import matplotlib.pyplot as plt
 
-class SEIR_v0_2(gym.Env):
+class SEIR_v0_3(gym.Env):
     """
     Description:
             Each city's population is broken down into four compartments --
@@ -40,7 +40,7 @@ class SEIR_v0_2(gym.Env):
             
 
     Reward:
-            reward = lambda * economic cost + (1-lambda) * public health cost
+            reward = weight * economic cost + (1-weight) * public health cost
             
             Economic cost:
             Num       Action                                    Crowd density               cost
@@ -50,19 +50,19 @@ class SEIR_v0_2(gym.Env):
 
             Health cost:                                min                     max
                 1.0 - 0.00001* number of infected      0.0                      1.0
-            lambda:
-                a user defined weight. Default 0.5
+    weight:
+        a user defined weight. Default 0.5
 
     Episode Termination:
             Episode length (time) reaches specified maximum (end time)
-            The end of analysis period is 100 days
+            The end of analysis period is ~170 days
     """
 
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, discretizing_time = 5, sampling_time = 1, sim_length = 170, theta = 3.37, inital_state =  [98588., 208., 449., 755.], validation = False):
-        super(SEIR_v0_2, self).__init__()
+    def __init__(self, discretizing_time = 5, sampling_time = 1, sim_length = 170, weight = 0.5, theta = 3.37, inital_state =  [98588., 208., 449., 755.], validation = False):
+        super(SEIR_v0_3, self).__init__()
 
         self.dt           = discretizing_time/(24*60)
         self.Ts           = sampling_time
@@ -70,7 +70,7 @@ class SEIR_v0_2(gym.Env):
        
         self.popu         = 1e5 #100000
         self.trainNoise   = False
-        self.weight       = 0.5 #reward weighting
+        self.weight       = weight #reward weighting
         self.inital_state = np.array(inital_state, dtype=float)
         self.validation   = validation
 
@@ -106,8 +106,10 @@ class SEIR_v0_2(gym.Env):
         #memory to save the trajectories
         self.state_trajectory  = []
         self.action_trajectory = []
-        self.rewards            = []
+        self.rewards           = []
         self.count             = 0
+
+        
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]

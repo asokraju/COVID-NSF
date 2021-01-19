@@ -31,7 +31,7 @@ import json
 import matplotlib.pyplot as plt
 
 #Local Packages
-from env.SEIR_v0_2 import SEIR_v0_2
+from env.SEIR_V0_3 import SEIR_v0_3
 from RL_algo.PPO import AC_model, PPOAgent
 
 #0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
@@ -41,17 +41,17 @@ from RL_algo.PPO import AC_model, PPOAgent
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='provide arguments for PPO agent')
     #loading the environment to get it default params
-    env = SEIR_v0_2()
+    env = SEIR_v0_3()
 
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
     #--------------------------------------------------------------------
     #general params
-    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results')
+    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2')
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
-    parser.add_argument('--random_seed', help='seeding the random number generator', default=1754)
+    parser.add_argument('--random_seed', help='seeding the random number generator', default=1123)
 
     #PPO agent params
     parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=600)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=7)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
-    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.8)
+    parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
 
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
@@ -75,7 +75,12 @@ if __name__ == '__main__':
     parser.add_argument('--rnn_steps', help='if rnn = True, then how many time steps do we see backwards',type =int, default=1)
 
     args = vars(parser.parse_args())
-
+    
+    # making the summary directory
+    try:
+        os.mkdir(args['summary_dir'])
+    except:
+        pass
     #saving the arguments to a text file
     try:
         args_path = args['summary_dir']+'/args.txt'
@@ -85,28 +90,29 @@ if __name__ == '__main__':
         pass
 
     pp.pprint(args)
-    try:
-        os.makedir(args['summary_dir'])
-    except:
-        pass
+
     
     #setting random seed
     np.random.seed(args['random_seed'])
     random.seed(args['random_seed'])
     tf.random.set_seed(args['random_seed'])
 
-    env = SEIR_v0_2(
+    env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
-        sim_length        = args['sim_length']
+        sim_length        = args['sim_length'],
+        weight            =args["env_weight"]
         )
-    test_env = SEIR_v0_2(
+    test_env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
-        sim_length        = args['sim_length'])
+        sim_length        = args['sim_length'],
+        weight            =args["env_weight"],
+        validation        = True
+        )
     
 
-    env.weight, test_env.weight= args['env_weight'], args['env_weight']
+    # env.weight, test_env.weight= args['env_weight'], args['env_weight']
     env.seed(args['random_seed'])
     test_env.seed(args['random_seed'])
 
