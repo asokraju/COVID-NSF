@@ -61,7 +61,17 @@ class SEIR_v0_3(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, discretizing_time = 5, sampling_time = 1, sim_length = 170, weight = 0.5, theta = 3.37, inital_state =  [98588., 208., 449., 755.], validation = False):
+    def __init__(
+        self, 
+        discretizing_time = 5, 
+        sampling_time = 1, 
+        sim_length = 170, 
+        weight = 0.5, 
+        theta = 3.37, 
+        inital_state =  [98588., 208., 449., 755.], 
+        validation = False,
+        noise = False,
+        noise_percent = 15):
         super(SEIR_v0_3, self).__init__()
 
         self.dt           = discretizing_time/(24*60)
@@ -97,6 +107,10 @@ class SEIR_v0_3(gym.Env):
         self.sim_length   = sim_length
         self.daynum       = 0
 
+        # noise
+        self.noise = noise
+        self.noise_percent = noise_percent
+
         #seeding
         self.seed()
 
@@ -109,7 +123,7 @@ class SEIR_v0_3(gym.Env):
         self.rewards           = []
         self.count             = 0
 
-        
+
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -177,7 +191,14 @@ class SEIR_v0_3(gym.Env):
         #self.action_trajectory.append(action)
         for _ in range(self.time_steps):
             self.rewards.append(reward)
-        return self.state, reward, done, {}
+        if not self.noise:
+            return self.state, reward, done, {}
+        else:
+            S, E, I, R = self.state[0], self.state[1], self.state[2], self.state[3]
+            I = (1 - (self.noise_percent / 100) ) * I
+            S = (1 + (self.noise_percent / 100) ) * S
+            noisy_state = np.array([S, E, I, R], dtype =float)
+            return noisy_state, reward, done, {}
         
     def reset(self):
 
