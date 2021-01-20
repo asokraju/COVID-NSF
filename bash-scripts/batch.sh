@@ -4,8 +4,8 @@ WEIGHT=$1
 WEIGHT_DIR="${WEIGHT}"
 DIR=$PWD
 PARENT_DIR="$(dirname $PWD)"
-mkdir -p ./results/$WEIGHT_DIR
-cd ./results/$WEIGHT_DIR
+mkdir -p ./results/Senario-1/$WEIGHT_DIR
+cd ./results/Senario-1/$WEIGHT_DIR
 
 conda activate tf-gpu
 
