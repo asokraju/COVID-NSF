@@ -94,7 +94,7 @@ if __name__ == '__main__':
         pass
     #saving the arguments to a text file
     try:
-        args_path = args['summary_dir']+'/args.txt'2
+        args_path = args['summary_dir']+'/args.txt'
         with open(args_path, 'w') as file:
             file.write(json.dumps(args)) # use `json.loads` to do the reverse
     except:

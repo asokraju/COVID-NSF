@@ -61,9 +61,6 @@ class SEIR_v0_3(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-<<<<<<< HEAD
-    def __init__(self, discretizing_time = 5, sampling_time = 1, sim_length = 175, weight = 0.5, theta = 3.37, inital_state =  [98588., 208., 449., 755.], validation = False):
-=======
     def __init__(
         self, 
         discretizing_time = 5, 
@@ -75,7 +72,6 @@ class SEIR_v0_3(gym.Env):
         validation = False,
         noise = False,
         noise_percent = 15):
->>>>>>> 36b895b739fa40919ab1616cb5c07d84657152ab
         super(SEIR_v0_3, self).__init__()
 
         self.dt           = discretizing_time/(24*60)
