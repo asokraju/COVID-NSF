@@ -142,7 +142,7 @@ class PPOAgent:
         self.gamma = gamma
         self.path = path
         self.traj_per_episode =traj_per_episode
-        self.EPSIODES, self.episode, self.max_avg_reward = EPSIODES, 0, -100 #max_avg_reward depends on the environment
+        self.EPSIODES, self.episode, self.max_avg_reward = EPSIODES, 0, -200 #max_avg_reward depends on the environment
         self.scores, self.averages, self.episodes = [], [], []
         # self.Actor, self.Critic = AC_model(input_shape=self.state_dim, action_dim=self.action_dim, lr=self.lr)
         self.Actor, self.Critic, self.Actor_Critic = AC_model_new(

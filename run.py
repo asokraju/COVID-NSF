@@ -54,13 +54,13 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', help='seeding the random number generator', default=1123)
 
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=600)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1500)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
 
     #model/env paramerterss
-    parser.add_argument('--sim_length', help='Total number of days', type = int, default=140)
+    parser.add_argument('--sim_length', help='Total number of days', type = int, default=175)
     parser.add_argument('--sampling_time', help='Sampling time (in days) used for the environment', type = int, default=7)
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
     parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
@@ -101,14 +101,17 @@ if __name__ == '__main__':
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'],
-        weight            =args["env_weight"]
+        weight            =args["env_weight"],
+        theta             =5.41,
+        inital_state      =[99759, 50, 77, 114]    
         )
     test_env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'],
         weight            =args["env_weight"],
-        validation        = True
+        validation        = True,
+        theta= 3.37
         )
     
 
