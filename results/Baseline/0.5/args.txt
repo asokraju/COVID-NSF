@@ -1,5 +1,1 @@
-<<<<<<< HEAD
 {"summary_dir": "./results/Senario-2", "use_gpu": true, "save_model": true, "load_model": true, "random_seed": 1123, "max_episodes": 1200, "exp_name": "seir", "gamma": 0.95, "traj_per_episode": 10, "EPSILON": 0.02, "C": 0.05, "sim_length": 140, "sampling_time": 7, "discretization_time": 5, "env_weight": 0.5, "training_noise": true, "training_noise_percent": 50.0, "training_theta": 4.4, "Validation_noise": false, "Validation_noise_percent": 15.0, "Validation_theta": 3.37, "params": 400, "lr": 0.0005, "EPOCHS": 10, "rnn": true, "rnn_steps": 1}
-=======
-{"summary_dir": "./results/Senario-2", "use_gpu": true, "save_model": true, "load_model": true, "random_seed": 1123, "max_episodes": 1200, "exp_name": "seir", "gamma": 0.95, "traj_per_episode": 10, "sim_length": 140, "sampling_time": 7, "discretization_time": 5, "env_weight": 0.5, "params": 400, "lr": 0.0005, "EPOCHS": 10, "EPSILON": 0.02, "C": 0.05, "rnn": true, "rnn_steps": 1}
->>>>>>> 36b895b739fa40919ab1616cb5c07d84657152ab

@@ -47,7 +47,7 @@ if __name__ == '__main__':
     action_dim = env.action_space.n
     #--------------------------------------------------------------------
     #general params
-    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2')
+    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2/delete/')
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
@@ -69,15 +69,18 @@ if __name__ == '__main__':
     parser.add_argument('--discretization_time', help='discretization time (in minutes) used for the environment ', type = int, default=5)
     parser.add_argument('--env_weight', help='0-Social cost, 1-economic cost', type = float, default=0.5)
     #-
-    parser.add_argument('--training_noise', help='Do we train the agent with noisy state', type = bool, default=True)
+    parser.add_argument('--training_noise', help='Do we train the agent with noisy state', type = bool, default=False)
     parser.add_argument('--training_noise_percent', help='Percentage of training noise', type = float, default=50.)
-    parser.add_argument('--training_theta', help='Percentage of training noise', type = float, default=4.40)
+    parser.add_argument('--training_theta', help='Percentage of training noise', type = float, default=3.37)
     #-
     parser.add_argument('--Validation_noise', help='Do we train the agent with noisy state', type = bool, default=False)
     parser.add_argument('--Validation_noise_percent', help='Percentage of training noise', type = float, default=15.)
     parser.add_argument('--Validation_theta', help='Percentage of training noise', type = float, default=3.37)
-
-
+    #-E, I, R inital conditions
+    parser.add_argument('--E', help='Number of Exposed people', type = int, default=208)
+    parser.add_argument('--I', help='Number of Infectious people', type = int, default=449)
+    parser.add_argument('--R', help='Number of Recovered people', type = int, default=755)
+    
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=5e-4)
@@ -108,21 +111,28 @@ if __name__ == '__main__':
     random.seed(args['random_seed'])
     tf.random.set_seed(args['random_seed'])
 
+    inital_state = [10e5 - args['E']- args['I'] - args['R'], args['E'], args['I'], args['R']]
     env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'],
-        weight            =args["env_weight"],
-        theta             =5.41,
-        inital_state      =[99759, 50, 77, 114]    
+        weight            = args["env_weight"],
+        theta             = args['training_theta'],
+        inital_state      = inital_state,
+        noise             = args['training_noise'],
+        noise_percent     = args['training_noise_percent'],
+        validation        = False   
         )
     test_env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
         sim_length        = args['sim_length'],
-        weight            =args["env_weight"],
-        validation        = True,
-        theta= 3.37
+        weight            = args["env_weight"],
+        theta             = args['Validation_theta'],
+        inital_state      = inital_state,
+        noise             = args['Validation_noise'],
+        noise_percent     = args['Validation_noise_percent'],   
+        validation        = True
         )
     
 

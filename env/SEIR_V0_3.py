@@ -85,13 +85,20 @@ class SEIR_v0_3(gym.Env):
         self.validation   = validation
 
         #model paramenters
-        self.theta        = np.full(shape=1, fill_value=theta * 24, dtype=float) # np.array([2, 2, 2, 2], dtype = float) #choose a random around 1
+        self.theta    = np.full(shape=1, fill_value=theta * 24, dtype=float)  
+        # if self.validation:
+        #     self.theta    = np.full(shape=1, fill_value=theta * 24, dtype=float) 
+        # else:
+        #     theta_        = theta * 24
+        #     low, high     = theta_ - (1 / ( 2 * theta_ ) ), theta_ + (1 / ( 2 * theta_ ) )
+        #     self.theta    = np.random.uniform(low = low, high = high, size=(1,))
+
         self.d            = np.full(shape=1, fill_value=1/24, dtype=float) # np.array([1/24, 1/24, 1/24, 1/24], dtype = float) # 1 hour or 1/24 days
 
-        #crowd density = np.full(shape=1, fill_value=6, dtype=float)
-        #self.beta         = self.theta * self.d * np.full(shape=1, fill_value=1, dtype=float) #needs to be changed
-        self.sigma        = 1.0/5   # needds to be changed
-        self.gamma        = 0.05    # needs to be changed
+        #crowd density    = np.full(shape=1, fill_value=6, dtype=float)
+        #self.beta        = self.theta * self.d * np.full(shape=1, fill_value=1, dtype=float) #needs to be changed
+        self.sigma        = 1.0/5   # needds to be changed?
+        self.gamma        = 0.05    # needs to be changed?
 
         self.n_actions    = 3                                               # total number of actions 
         self.rho          = np.array([0, 0.75, 1.5], dtype=float)      # possible actions (crowd_densities)
@@ -108,7 +115,7 @@ class SEIR_v0_3(gym.Env):
         self.daynum       = 0
 
         # noise
-        self.noise = noise
+        self.noise         = noise
         self.noise_percent = noise_percent
 
         #seeding

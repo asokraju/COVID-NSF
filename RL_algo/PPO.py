@@ -103,11 +103,12 @@ def AC_model_new(input_shape, action_dim, lr, EPSILON, C, rnn, rnn_steps):
     
     lossWeights  = {'actions':0.5, 'values':0.5}
     lossFuns     = {'actions':ppo_parametrized(EPSILON, C), 'values':'mse'}
-    Actor_Critic = Model(inputs = input_layer, outputs = [actions, values])
-    Actor_Critic.compile(optimizer=RMSprop(lr=lr), loss=lossFuns, loss_weights=lossWeights)
 
     Actor = Model(inputs = input_layer, outputs = actions)
     Critic = Model(inputs = input_layer, outputs = values)
+    Actor_Critic = Model(inputs = input_layer, outputs = [actions, values])
+    Actor_Critic.compile(optimizer=RMSprop(lr=lr), loss=lossFuns, loss_weights=lossWeights)
+    # Actor_Critic.compile(optimizer=RMSprop(lr=lr), loss=[ppo_parametrized(EPSILON, C), 'mse'], loss_weights=[0.5, 0.5])
     return Actor, Critic, Actor_Critic
 
 
@@ -256,7 +257,7 @@ class PPOAgent:
 
         #Y = [y_true, discounted_r]
 
-        return states, y_true, discounted_r , score
+        return states, y_true, values, discounted_r , score
 
     def samples_rnn(self):
         states, actions, rewards, predictions = [], [], [], []
@@ -310,9 +311,9 @@ class PPOAgent:
                 score.append(score_new)
             
             states          = np.vstack(states)
-            y_true          = np.vstack(y_true)
-            discounted_r    = np.vstack(discounted_r)
-            Y               = [y_true, discounted_r]
+            y_actions       = np.vstack(y_true)
+            y_values        = np.vstack(discounted_r)
+            # discounted_r    = np.vstack(discounted_r)
 
             mean_score = np.mean(score)
             self.scores.append(mean_score)
@@ -326,7 +327,10 @@ class PPOAgent:
             else:
                 save_model = ""
             print("episode: {}/{}, score: {}, average: {:.2f} {}".format(e, self.EPSIODES, mean_score, average, save_model))
-            self.Actor_Critic.fit(states, Y, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+            outputs     = {'actions':y_actions, 'values': y_values}
+            self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
+            # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+
 
 
     def load(self):
