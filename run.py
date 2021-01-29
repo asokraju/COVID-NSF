@@ -51,14 +51,14 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
-    parser.add_argument('--random_seed', help='seeding the random number generator', default=1123)
-    parser.add_argument('--start_time', help='simulation start time for book keeping', type = str, default=start_time)
+    parser.add_argument('--random_seed', help='seeding the random number generator',type = int, default=1123)
+    # parser.add_argument('--start_time', help='simulation start time for book keeping', type = str, default=start_time)
 
     #PPO agent params
     parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1500)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
-    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=10)
+    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=100)
     parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.02)
     parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
 
@@ -84,7 +84,7 @@ if __name__ == '__main__':
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=5e-4)
-    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=10)
+    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=50)
     parser.add_argument('--rnn', help='Use reccurent neural networks?', type = bool, default=True)
     parser.add_argument('--rnn_steps', help='if rnn = True, then how many time steps do we see backwards',type =int, default=1)
 
@@ -93,13 +93,6 @@ if __name__ == '__main__':
     # making the summary directory
     try:
         os.mkdir(args['summary_dir'])
-    except:
-        pass
-    #saving the arguments to a text file
-    try:
-        args_path = args['summary_dir']+'/args.txt'
-        with open(args_path, 'w') as file:
-            file.write(json.dumps(args)) # use `json.loads` to do the reverse
     except:
         pass
 
@@ -185,3 +178,16 @@ if __name__ == '__main__':
     axes[1].set_xlabel('Episodes', fontsize=15)
     savefig_filename = args['summary_dir'] + "/" + 'SCORES.pdf'
     plt.savefig(savefig_filename, format = 'pdf')
+
+
+    #saving the arguments to a text file
+    end_time = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+
+    args['start_time'] = start_time
+    args['end_time'] = end_time
+    try:
+        args_path = args['summary_dir']+'/args.txt'
+        with open(args_path, 'w') as file:
+            file.write(json.dumps(args)) # use `json.loads` to do the reverse
+    except:
+        pass

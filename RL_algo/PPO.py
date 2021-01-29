@@ -163,6 +163,11 @@ class PPOAgent:
         self.EPOCHS = EPOCHS
         self.std_scalar = StandardScaler()
         self._standardizing_state()
+        # try:
+        #     self.load()
+        #     print("Successfully loaded the weight of the Actor-Critic neural network")
+        # except:
+        #     pass
 
     def _standardizing_state(self):
         std_path = self.path + "/" + self.Model_name + 'std_scaler.bin'
@@ -236,7 +241,11 @@ class PPOAgent:
         done, score = False, 0
         while not done:
             state = self.std_scalar.transform(np.reshape(state, (1,-1)))
-            prediction, action  = self.predict_actions(state)
+            if self.e==0:
+                action = np.random.choice(3)
+                prediction = np.full((3,), 1/3)
+            else:
+                prediction, action  = self.predict_actions(state)
             next_state, reward, done, _ = self.env.step(action)
             actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
             states.append(state)
@@ -273,7 +282,11 @@ class PPOAgent:
             states.append(state.tolist())
             state = np.reshape(states[-self.rnn_steps:], (1, self.rnn_steps, -1))
             #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
-            prediction, action  = self.predict_actions(state)
+            if self.e==0:
+                action = np.random.choice(3)
+                prediction = np.full((3,), 1/3)
+            else:
+                prediction, action  = self.predict_actions(state)
             next_state, reward, done, _ = self.env.step(action)
             actions_onehot = tf.keras.utils.to_categorical(action, self.action_dim)
             actions.append(actions_onehot)
@@ -288,6 +301,8 @@ class PPOAgent:
         states_rnn = [states[i:i+self.rnn_steps].tolist() for i in range(len(states) - self.rnn_steps+1)]
         states_rnn = np.reshape(states_rnn, (-1, self.rnn_steps, self.state_dim))
         values = self.Critic.predict(states_rnn)
+        # print("values", values)
+        # print("discounted_r", np.shape(discounted_r))
         advantages = discounted_r - values
         
         y_true = np.hstack([advantages, predictions, actions])
@@ -296,7 +311,7 @@ class PPOAgent:
         return states_rnn, y_true, discounted_r , score     
 
     def run(self):
-        for e in range(self.EPSIODES):
+        for self.e in range(self.EPSIODES):
             save_model = ''
             #memory buffers of states, actions, rewards, predicted action propabilities
             states, y_true, discounted_r, score = [], [], [], []
@@ -326,7 +341,7 @@ class PPOAgent:
                 save_model = 'SAVING'
             else:
                 save_model = ""
-            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(e, self.EPSIODES, mean_score, average, save_model))
+            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.e, self.EPSIODES, mean_score, average, save_model))
             outputs     = {'actions':y_actions, 'values': y_values}
             self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
             # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    

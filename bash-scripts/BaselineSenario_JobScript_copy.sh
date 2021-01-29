@@ -7,7 +7,7 @@ do
     do
       for epsilon in 0.02 0.05 0.1
       do
-        for weight in 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+        for weight in 0.5 0.6
         do
         ./bash-scripts/BaselineSenario_Batch.sh $test_name $random_seed $max_episodes $epsilon $weight
         done
