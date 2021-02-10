@@ -385,3 +385,101 @@ class PPOAgent:
             state, _, done, _ = test_env.step(action)
         savefig_filename = self.path + "/" + savefig_filename
         test_env.plot(savefig_filename = savefig_filename)
+
+    def run(self):
+        for self.e in range(self.EPSIODES):
+            save_model = ''
+            #memory buffers of states, actions, rewards, predicted action propabilities
+            states, y_true, discounted_r, score = [], [], [], []
+            for _ in range(self.traj_per_episode):
+                if not self.rnn:
+                    states_new, y_true_new, discounted_r_new, score_new = self.samples()
+                else:
+                    states_new, y_true_new, discounted_r_new, score_new = self.samples_rnn()
+                states.append(states_new)
+                y_true.append(y_true_new)
+                discounted_r.append(discounted_r_new)
+                score.append(score_new)
+            
+            states          = np.vstack(states)
+            y_actions       = np.vstack(y_true)
+            y_values        = np.vstack(discounted_r)
+            # discounted_r    = np.vstack(discounted_r)
+
+            mean_score = np.mean(score)
+            self.scores.append(mean_score)
+            average = sum(self.scores[-50:]) / len(self.scores[-50:])
+            self.averages.append(average)
+            self.episodes.append(self.episode)
+            if average >= self.max_avg_reward :
+                self.max_avg_reward = average
+                self.save()
+                save_model = 'SAVING'
+            else:
+                save_model = ""
+            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.e, self.EPSIODES, mean_score, average, save_model))
+            outputs     = {'actions':y_actions, 'values': y_values}
+            self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
+            # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+
+
+    def train(self, n_threads):
+        self.env.close()
+        # Instantiate one environment per thread
+        envs = self.env_list
+
+        # Create threads
+        threads = [threading.Thread(
+                target=self.train_threading,
+                daemon=True,
+                args=(self,
+                    envs[i],
+                    i)) for i in range(n_threads)]
+
+        for t in threads:
+            time.sleep(2)
+            t.start()
+
+        for t in threads:
+            time.sleep(10)
+            t.join()
+            
+    def train_threading(self, agent, env, thread):
+        while self.episode < self.EPISODES:
+            # Reset episode
+            score, done, SAVING = 0, False, ''
+            state = self.reset(env)
+            # Instantiate or reset games memory
+            states, actions, rewards, predictions = [], [], [], []
+            while not done:
+                action, prediction = agent.act(state)
+                next_state, reward, done, _ = self.step(action, env, state)
+
+                states.append(state)
+                action_onehot = np.zeros([self.action_size])
+                action_onehot[action] = 1
+                actions.append(action_onehot)
+                rewards.append(reward)
+                predictions.append(prediction)
+                
+                score += reward
+                state = next_state
+
+            self.lock.acquire()
+            self.replay(states, actions, rewards, predictions)
+            self.lock.release()
+
+            # Update episode count
+            with self.lock:
+                average = self.PlotModel(score, self.episode)
+                # saving best models
+                if average >= self.max_average:
+                    self.max_average = average
+                    self.save()
+                    SAVING = "SAVING"
+                else:
+                    SAVING = ""
+                print("episode: {}/{}, thread: {}, score: {}, average: {:.2f} {}".format(self.episode, self.EPISODES, thread, score, average, SAVING))
+                if(self.episode < self.EPISODES):
+                    self.episode += 1
+        env.close()  
