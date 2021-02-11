@@ -85,23 +85,19 @@ class SEIR_v0_3(gym.Env):
         self.validation   = validation
 
         #model paramenters
-        self.theta    = np.full(shape=1, fill_value=theta * 24, dtype=float)  
-        # if self.validation:
-        #     self.theta    = np.full(shape=1, fill_value=theta * 24, dtype=float) 
-        # else:
-        #     theta_        = theta * 24
-        #     low, high     = theta_ - (1 / ( 2 * theta_ ) ), theta_ + (1 / ( 2 * theta_ ) )
-        #     self.theta    = np.random.uniform(low = low, high = high, size=(1,))
+        self.theta    = np.full(shape=1, fill_value=theta, dtype=float)  
 
-        self.d            = np.full(shape=1, fill_value=1/24, dtype=float) # np.array([1/24, 1/24, 1/24, 1/24], dtype = float) # 1 hour or 1/24 days
+        self.d            = np.full(shape=1, fill_value=1/24, dtype=float)
 
-        #crowd density    = np.full(shape=1, fill_value=6, dtype=float)
-        #self.beta        = self.theta * self.d * np.full(shape=1, fill_value=1, dtype=float) #needs to be changed
         self.sigma        = 1.0/5   # needds to be changed?
         self.gamma        = 0.05    # needs to be changed?
 
-        self.n_actions    = 3                                               # total number of actions 
-        self.rho          = np.array([0, 0.75, 1.5], dtype=float)      # possible actions (crowd_densities)
+        # total number of actions
+        self.n_actions    = 3
+
+        # Crowd densities
+        self.rho          = np.array([0.044, 0.25, 1], dtype=float)      # now
+        # Resulting Infection rate beta = rho*theta*d^2 = [0.009, 0.049, 0.196]
 
         #Economic costs 
         self.eco_costs    = np.array([1, 0.25, 0], dtype=float) 
@@ -137,9 +133,9 @@ class SEIR_v0_3(gym.Env):
     
     def get_state(self):
         if not self.validation:
-            init_E = np.random.randint(10, high=self.inital_state[1]*2)
-            init_I = np.random.randint(10, high=self.inital_state[2]*2)
-            init_R = self.inital_state[3]
+            init_E = np.random.randint(self.inital_state[1]*0.1, high=self.inital_state[1]*2)
+            init_I = np.random.randint(self.inital_state[2]*0.1, high=self.inital_state[2]*2)
+            init_R = np.random.randint(self.inital_state[3]*0.1, high=self.inital_state[3]*2)
             init_S = self.popu - init_E - init_I - init_R
             self.state = np.array([init_S, init_E, init_I, init_R], dtype=float)
         else:

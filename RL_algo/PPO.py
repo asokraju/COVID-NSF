@@ -1,7 +1,6 @@
 import os
 #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
 import random
 import gym
 from gym import spaces
@@ -15,9 +14,10 @@ from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten, GRU
 from tensorflow.keras.optimizers import Adam, RMSprop
 from tensorflow.keras import backend as K
 
-import threading
-from threading import Thread, Lock
+import concurrent.futures 
 import time
+import copy
+from functools import partial
 
 from sklearn.preprocessing import StandardScaler
 from joblib import dump, load
@@ -112,10 +112,99 @@ def AC_model_new(input_shape, action_dim, lr, EPSILON, C, rnn, rnn_steps):
     return Actor, Critic, Actor_Critic
 
 
+def sampler(env, rnn_steps, episode_num, gamma, std_scalar_path, actor_path, critic_path):
+        states, actions, rewards, predictions = [], [], [], []
+        # if os.path.isfile(actor_path):
+        # Loading the models for actor, critic and standard scalar
+        try:
+            std_scalar = load(std_scalar_path)
+        except:
+            assert os.path.isfile(std_scalar_path), "Standard Scalar path is empty"
+
+        try:
+            Actor = load_model(actor_path, compile=False)
+        except:
+            assert os.path.isfile(actor_path), "Actor path is empty"
+
+        try:
+            Critic = load_model(critic_path, compile=False)
+        except:
+            assert  os.path.isfile(critic_path), "Critic path is empty"
+
+        state = env.reset()
+        for _ in range(rnn_steps - 1):
+            state = std_scalar.transform(np.reshape(state, (1,-1)))
+            states.append(state.tolist())
+            state, _, _, _ = env.step(env.action_space.sample())
+
+        done, score = False, 0
+        while not done:
+            state = std_scalar.transform(np.reshape(state, (1,-1)))
+            states.append(state.tolist())
+            state = np.reshape(states[-rnn_steps:], (1, rnn_steps, -1))
+            # print(np.reshape(state, (1,-1)), np.shape(np.reshape(state, (1,-1))))
+            #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
+            if episode_num<=1:
+                action = np.random.choice(3)
+                prediction = np.full((3,), 1/3)
+            else:
+                # prediction = Actor.predict(np.reshape(state, (1,-1)))[0]
+                prediction = Actor.predict(state)[0]
+                action = np.random.choice(env.action_space.n, p=prediction)
+            next_state, reward, done, _ = env.step(action)
+            actions_onehot = tf.keras.utils.to_categorical(action, env.action_space.n)
+            actions.append(actions_onehot)
+            predictions.append(prediction)
+            rewards.append(reward)
+            state = next_state
+            score += reward
+        states = np.vstack(states)
+        actions = np.vstack(actions)
+        predictions = np.vstack(predictions)
+
+        #computing the discounted rewards
+        reward_sum = 0
+        discounted_rewards = []
+        for reward in rewards[::-1]:
+            reward_sum = reward + gamma * reward_sum
+            discounted_rewards.append(reward_sum)
+        discounted_rewards.reverse()
+        discounted_rewards = np.array(discounted_rewards)
+        discounted_rewards -= np.mean(discounted_rewards) # normalizing the result
+        discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation, added 1e-10 for numerical stability
+        discounted_r = np.vstack(discounted_rewards)
+
+
+        states_rnn = [states[i:i+rnn_steps].tolist() for i in range(len(states) - rnn_steps+1)]
+        states_rnn = np.reshape(states_rnn, (-1, rnn_steps, env.observation_space.shape[0]))
+        values = Critic.predict(states_rnn)
+        # print("values", values)
+        # print("discounted_r", np.shape(discounted_r))
+        advantages = discounted_r - values
+        
+        y_true = np.hstack([advantages, predictions, actions])
+
+        #Y = [y_true, discounted_r]
+        return states_rnn, y_true, discounted_r , score     
+
+
+def _std_scalar_work(env):
+    """
+    this generates the samples to train std scalar function
+    this is used when mpi=true
+    """
+    states = []
+    env.reset()  
+    d = False
+    while not d:
+        s, _, d, _ =  env.step(env.action_space.sample())
+        states.append(list(s))
+    return states
+
 ################################################################################################################
 class PPOAgent:
     def __init__(
-        self,  env, test_env, 
+        self,  env, test_env, env_list,
         exp_name = 'seir', 
         EPSIODES = 10000, 
         lr = 0.0001, 
@@ -126,11 +215,13 @@ class PPOAgent:
         EPSILON = 0.1,
         C = 1e-2,
         rnn = False,
-        rnn_steps = 2
+        rnn_steps = 2, 
+        use_mpi = False
         ):
         self.exp_name = exp_name
         self.env = env # SEIR_v0_2(discretizing_time = 5, sampling_time = 1, sim_length = 100)
         self.test_env = test_env
+        self.env_list = env_list
         self.state_dim = self.env.observation_space.shape[0]
         self.action_dim = 3# specific to SEIR model self.env.action_space.n
         self.lr = lr
@@ -139,7 +230,7 @@ class PPOAgent:
 
         self.rnn = rnn
         self.rnn_steps = rnn_steps
-
+        self.use_mpi = use_mpi
         self.gamma = gamma
         self.path = path
         self.traj_per_episode =traj_per_episode
@@ -160,9 +251,11 @@ class PPOAgent:
         self.Actor_name  = self.path + "/" + self.Model_name + '_Actor.h5'
         self.Critic_name = self.path + "/" + self.Model_name + '_Critic.h5'
         self.Actor_Critic_name = self.path + "/" + self.Model_name + '_Actor_Critic.h5' 
+        self.std_path = self.path + "/" + self.Model_name + 'std_scaler.bin'
         self.EPOCHS = EPOCHS
         self.std_scalar = StandardScaler()
         self._standardizing_state()
+
         # try:
         #     self.load()
         #     print("Successfully loaded the weight of the Actor-Critic neural network")
@@ -170,23 +263,44 @@ class PPOAgent:
         #     pass
 
     def _standardizing_state(self):
-        std_path = self.path + "/" + self.Model_name + 'std_scaler.bin'
-        if os.path.isfile(std_path):
-            self.std_scalar=load(std_path)
+        n_envs = 100
+        # self.std_path = self.path + "/" + self.Model_name + 'std_scaler.bin'
+        if os.path.isfile(self.std_path):
+            self.std_scalar=load(self.std_path)
         else:
             print("fitting a StandardScaler() to scale the states")
             states = []
-            for _ in range(100):  
-                self.env.reset()  
-                d = False
-                while not d:
-                    s, _, d, _ =  self.env.step(self.env.action_space.sample())
-                    states.append(list(s))
+            if self.use_mpi:
+                """
+                if multi processing is enabled, we will use it to obtain the samples
+
+                """
+                print("Using concurent futures to obtain the samples")
+                list_envs = [copy.deepcopy(self.env) for _ in range(n_envs)]
+                with concurrent.futures.ProcessPoolExecutor(max_workers=None) as executor:        
+                    future_to_samples = {executor.submit(_std_scalar_work, env): env for env in list_envs}
+                    kwargs = {
+                        'total': len(future_to_samples),
+                        'unit': 'it',
+                        'unit_scale': True,
+                        'leave': True
+                    }
+                for future in concurrent.futures.as_completed(future_to_samples):
+                    states_new = future.result()
+                    states.append(states_new)
+                states = np.vstack(states)
+            else:
+                for _ in range(n_envs):  
+                    self.env.reset()  
+                    d = False
+                    while not d:
+                        s, _, d, _ =  self.env.step(self.env.action_space.sample())
+                        states.append(list(s))
             X = np.array(states)
             self.std_scalar = StandardScaler()
             self.std_scalar.fit(X)
             print("done!")
-            dump(self.std_scalar, std_path, compress=True)
+            dump(self.std_scalar, self.std_path, compress=True)
 
     def predict_actions(self, state):
         """
@@ -312,19 +426,77 @@ class PPOAgent:
 
     def run(self):
         for self.e in range(self.EPSIODES):
+            self.Actor.save(self.Actor_name)
+            self.Critic.save(self.Critic_name)
             save_model = ''
             #memory buffers of states, actions, rewards, predicted action propabilities
             states, y_true, discounted_r, score = [], [], [], []
+            t0 = time.perf_counter()
             for _ in range(self.traj_per_episode):
                 if not self.rnn:
                     states_new, y_true_new, discounted_r_new, score_new = self.samples()
                 else:
                     states_new, y_true_new, discounted_r_new, score_new = self.samples_rnn()
+                
+                
                 states.append(states_new)
                 y_true.append(y_true_new)
                 discounted_r.append(discounted_r_new)
                 score.append(score_new)
             
+            states          = np.vstack(states)
+            y_actions       = np.vstack(y_true)
+            y_values        = np.vstack(discounted_r)
+            # discounted_r    = np.vstack(discounted_r)
+            t1 = time.perf_counter()
+            print("Time taken to collect all the samples: ",t1-t0)
+            mean_score = np.mean(score)
+            self.scores.append(mean_score)
+            average = sum(self.scores[-50:]) / len(self.scores[-50:])
+            self.averages.append(average)
+            self.episodes.append(self.episode)
+            if average >= self.max_avg_reward :
+                self.max_avg_reward = average
+                self.save()
+                save_model = 'SAVING'
+            else:
+                save_model = ""
+            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.e, self.EPSIODES, mean_score, average, save_model))
+            outputs     = {'actions':y_actions, 'values': y_values}
+            self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
+            # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+
+    def run_mpi(self):
+        current_actor  = self.path + "/" + self.Model_name + '_Current_Actor.h5'
+        current_critic  = self.path + "/" + self.Model_name + '_Current_Critic.h5'
+        for self.e in range(self.EPSIODES):
+            self.Actor.save(current_actor)
+            self.Critic.save(current_critic)
+            env_list = self.env_list #[copy.deepcopy(self.env) for _ in range(self.traj_per_episode)]
+            save_model = ''
+            #memory buffers of states, actions, rewards, predicted action propabilities
+            states, y_true, discounted_r, score = [], [], [], []
+            t0 = time.perf_counter()
+            with concurrent.futures.ProcessPoolExecutor(max_workers=None) as executor:        
+                partial_sampler = partial(
+                    sampler,
+                    rnn_steps       = self.rnn_steps, 
+                    episode_num     = self.e, 
+                    gamma           = self.gamma, 
+                    std_scalar_path = self.std_path, 
+                    actor_path      = current_actor, 
+                    critic_path     = current_critic
+                    )
+                future_to_samples = {executor.submit(partial_sampler, env): env for env in env_list}
+
+            for future in concurrent.futures.as_completed(future_to_samples):
+                states_new, y_true_new, discounted_r_new, score_new = future.result()
+                states.append(states_new)
+                y_true.append(y_true_new)
+                discounted_r.append(discounted_r_new)
+                score.append(score_new)
+            t1 = time.perf_counter()
+            print("Time taken to collect all the samples: ",t1-t0)
             states          = np.vstack(states)
             y_actions       = np.vstack(y_true)
             y_values        = np.vstack(discounted_r)
@@ -345,7 +517,6 @@ class PPOAgent:
             outputs     = {'actions':y_actions, 'values': y_values}
             self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
             # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
-
 
 
     def load(self):
@@ -386,100 +557,3 @@ class PPOAgent:
         savefig_filename = self.path + "/" + savefig_filename
         test_env.plot(savefig_filename = savefig_filename)
 
-    def run(self):
-        for self.e in range(self.EPSIODES):
-            save_model = ''
-            #memory buffers of states, actions, rewards, predicted action propabilities
-            states, y_true, discounted_r, score = [], [], [], []
-            for _ in range(self.traj_per_episode):
-                if not self.rnn:
-                    states_new, y_true_new, discounted_r_new, score_new = self.samples()
-                else:
-                    states_new, y_true_new, discounted_r_new, score_new = self.samples_rnn()
-                states.append(states_new)
-                y_true.append(y_true_new)
-                discounted_r.append(discounted_r_new)
-                score.append(score_new)
-            
-            states          = np.vstack(states)
-            y_actions       = np.vstack(y_true)
-            y_values        = np.vstack(discounted_r)
-            # discounted_r    = np.vstack(discounted_r)
-
-            mean_score = np.mean(score)
-            self.scores.append(mean_score)
-            average = sum(self.scores[-50:]) / len(self.scores[-50:])
-            self.averages.append(average)
-            self.episodes.append(self.episode)
-            if average >= self.max_avg_reward :
-                self.max_avg_reward = average
-                self.save()
-                save_model = 'SAVING'
-            else:
-                save_model = ""
-            print("episode: {}/{}, score: {}, average: {:.2f} {}".format(self.e, self.EPSIODES, mean_score, average, save_model))
-            outputs     = {'actions':y_actions, 'values': y_values}
-            self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
-            # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
-
-
-    def train(self, n_threads):
-        self.env.close()
-        # Instantiate one environment per thread
-        envs = self.env_list
-
-        # Create threads
-        threads = [threading.Thread(
-                target=self.train_threading,
-                daemon=True,
-                args=(self,
-                    envs[i],
-                    i)) for i in range(n_threads)]
-
-        for t in threads:
-            time.sleep(2)
-            t.start()
-
-        for t in threads:
-            time.sleep(10)
-            t.join()
-            
-    def train_threading(self, agent, env, thread):
-        while self.episode < self.EPISODES:
-            # Reset episode
-            score, done, SAVING = 0, False, ''
-            state = self.reset(env)
-            # Instantiate or reset games memory
-            states, actions, rewards, predictions = [], [], [], []
-            while not done:
-                action, prediction = agent.act(state)
-                next_state, reward, done, _ = self.step(action, env, state)
-
-                states.append(state)
-                action_onehot = np.zeros([self.action_size])
-                action_onehot[action] = 1
-                actions.append(action_onehot)
-                rewards.append(reward)
-                predictions.append(prediction)
-                
-                score += reward
-                state = next_state
-
-            self.lock.acquire()
-            self.replay(states, actions, rewards, predictions)
-            self.lock.release()
-
-            # Update episode count
-            with self.lock:
-                average = self.PlotModel(score, self.episode)
-                # saving best models
-                if average >= self.max_average:
-                    self.max_average = average
-                    self.save()
-                    SAVING = "SAVING"
-                else:
-                    SAVING = ""
-                print("episode: {}/{}, thread: {}, score: {}, average: {:.2f} {}".format(self.episode, self.EPISODES, thread, score, average, SAVING))
-                if(self.episode < self.EPISODES):
-                    self.episode += 1
-        env.close()  

@@ -8,22 +8,9 @@ import pprint as pp
 #os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import random
-import gym
-from gym import spaces
-from gym.utils import seeding
-
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten, GRU
-from tensorflow.keras.optimizers import Adam, RMSprop
-from tensorflow.keras import backend as K
-
-import threading
-from threading import Thread, Lock
 import time
-
-from sklearn.preprocessing import StandardScaler
 from joblib import dump, load
 from scipy.io import savemat
 import datetime
@@ -34,8 +21,11 @@ import matplotlib.pyplot as plt
 from env.SEIR_V0_3 import SEIR_v0_3
 from RL_algo.PPO import AC_model, PPOAgent
 
-#0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
-#/home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
+#to reduce the tensorflow messages
+# tf.get_logger().setLevel('WARNING')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+# 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+# /home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
 
 #---------------------------------------------------------------------
 if __name__ == '__main__':
@@ -47,19 +37,20 @@ if __name__ == '__main__':
     action_dim = env.action_space.n
     #--------------------------------------------------------------------
     #general params
-    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2/delete/')
+    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2/delete_1/')
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
     parser.add_argument('--random_seed', help='seeding the random number generator',type = int, default=1123)
+    parser.add_argument('--mpi', help='Use Multi-Processing', type = bool, default=True)
     # parser.add_argument('--start_time', help='simulation start time for book keeping', type = str, default=start_time)
 
     #PPO agent params
-    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=1500)
+    parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=300)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
-    parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.95)
+    parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.995)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=100)
-    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.02)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.1)
     parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
 
 
@@ -71,20 +62,20 @@ if __name__ == '__main__':
     #-
     parser.add_argument('--training_noise', help='Do we train the agent with noisy state', type = bool, default=False)
     parser.add_argument('--training_noise_percent', help='Percentage of training noise', type = float, default=50.)
-    parser.add_argument('--training_theta', help='Percentage of training noise', type = float, default=3.37)
+    parser.add_argument('--training_theta', help='Percentage of training noise', type = float, default=113.92)
     #-
     parser.add_argument('--Validation_noise', help='Do we train the agent with noisy state', type = bool, default=False)
     parser.add_argument('--Validation_noise_percent', help='Percentage of training noise', type = float, default=15.)
-    parser.add_argument('--Validation_theta', help='Percentage of training noise', type = float, default=3.37)
-    #-E, I, R inital conditions
-    parser.add_argument('--E', help='Number of Exposed people', type = int, default=208)
-    parser.add_argument('--I', help='Number of Infectious people', type = int, default=449)
-    parser.add_argument('--R', help='Number of Recovered people', type = int, default=755)
+    parser.add_argument('--Validation_theta', help='Percentage of training noise', type = float, default=113.92)
+    # - E, I, R inital conditions
+    parser.add_argument('--E', help='Number of Exposed people', type = int, default=81)
+    parser.add_argument('--I', help='Number of Infectious people', type = int, default=138)
+    parser.add_argument('--R', help='Number of Recovered people', type = int, default=115)
     
     #Network parameters
     parser.add_argument('--params', help='Hiden layer parameters', type = int, default=400)
     parser.add_argument('--lr', help='learning rate', type = float, default=5e-4)
-    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=50)
+    parser.add_argument('--EPOCHS', help='Number of epochs for training',type =int, default=20)
     parser.add_argument('--rnn', help='Use reccurent neural networks?', type = bool, default=True)
     parser.add_argument('--rnn_steps', help='if rnn = True, then how many time steps do we see backwards',type =int, default=1)
 
@@ -104,6 +95,7 @@ if __name__ == '__main__':
     random.seed(args['random_seed'])
     tf.random.set_seed(args['random_seed'])
 
+    #inital state
     inital_state = [10e5 - args['E']- args['I'] - args['R'], args['E'], args['I'], args['R']]
     env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
@@ -116,6 +108,7 @@ if __name__ == '__main__':
         noise_percent     = args['training_noise_percent'],
         validation        = False   
         )
+    
     test_env = SEIR_v0_3(
         discretizing_time = args['discretization_time'], 
         sampling_time     = args['sampling_time'], 
@@ -128,14 +121,29 @@ if __name__ == '__main__':
         validation        = True
         )
     
+    env_args = {
+        'discretizing_time' : args['discretization_time'], 
+        'sampling_time'     : args['sampling_time'], 
+        'sim_length'        : args['sim_length'],
+        'weight'            : args["env_weight"],
+        'theta'             : args['training_theta'],
+        'inital_state'      : inital_state,
+        'noise'             : args['training_noise'],
+        'noise_percent'     : args['training_noise_percent'],
+        'validation'        : False   }
+
+    # n_threads = 5
+    env_list = [SEIR_v0_3(**env_args) for _ in range(args['traj_per_episode'])]
 
     # env.weight, test_env.weight= args['env_weight'], args['env_weight']
     env.seed(args['random_seed'])
     test_env.seed(args['random_seed'])
+    [env_from_list.seed(args['random_seed']) for env_from_list in env_list]
 
     agent = PPOAgent(
         env              =   env, 
         test_env         =   test_env, 
+        env_list         =   env_list,
         exp_name         =   args['exp_name'], 
         EPSIODES         =   args['max_episodes'], 
         lr               =   args['lr'], 
@@ -146,16 +154,21 @@ if __name__ == '__main__':
         EPSILON          =   args['EPSILON'],
         C                =   args['C'],
         rnn              =   args['rnn'],
-        rnn_steps        =   args['rnn_steps']
+        rnn_steps        =   args['rnn_steps'],
+        use_mpi          =   args['mpi']
         )       
     
     # try:
     #     agent.load()
     # except:
     #     pass
-
-    agent.run()
-
+    t0= time.perf_counter()
+    if not args['mpi']:
+        agent.run()
+    else:
+        agent.run_mpi()
+    t1 = time.perf_counter()
+    print("Time taken to run the experiment: ",t1-t0)
     #testing
     print("testing the agent")
     agent.test(savefig_filename='fin_plot.pdf')
@@ -185,9 +198,10 @@ if __name__ == '__main__':
 
     args['start_time'] = start_time
     args['end_time'] = end_time
+    args['Total _time'] = (t1-t0)/(60*60)
     try:
         args_path = args['summary_dir']+'/args.txt'
         with open(args_path, 'w') as file:
             file.write(json.dumps(args)) # use `json.loads` to do the reverse
     except:
-        pass
+        pass 
