@@ -1,8 +1,6 @@
 # Installation instructions using anaconda on windows
 
 - Use Anconda powershell in windows (with root access)
-- Download and install cuda - `11.x.x` from nvidea-website
-- Restart the pc
 
 ## Steps
 
@@ -11,6 +9,14 @@
 
 - Activate the enviroment
   - `conda activate tf-gpu`
+
+- Installing cuda tool-kit
+  - Download and install cuda - `11.x.x` from nvidea-website
+  - (or using conda) `conda install cudatoolkit=11.0`
+  - Restart the pc
+
+- Installing cudnn
+  - `conda install cudnn`
 
 - Anaconda maintains a stable (currently `2.3.x`, not the latest i.e., `2.4.x`) version of tensorflow with/without gpu and cudnn binaries
   - (just cpu) `conda install tensorflow`
@@ -50,6 +56,13 @@
     id 0     b'GeForce GTX 980M'                              [SUPPORTED]
     ```
 
+2. Using `python`
+
+    ```python
+    import tensorflow as tf
+    tf.config.list_physical_devices('GPU')
+    ```
+
 ## Final list of necessary packages
 
 ```text
@@ -65,6 +78,8 @@ scipy                     1.6.0
 setuptools                52.0.0
 tensorflow                2.3.0
 tensorflow-gpu            2.3.0
+cudnn                     8.0.5.39
+cudatoolkit               11.0.221
 ```
 
 # Instructions for running the code

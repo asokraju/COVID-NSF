@@ -23,13 +23,22 @@ from RL_algo.PPO import AC_model, PPOAgent
 
 #to reduce the tensorflow messages
 # tf.get_logger().setLevel('WARNING')
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-tf.get_logger().setLevel('ERROR')
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+# tf.get_logger().setLevel('ERROR')
 
 # /home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
-
 #---------------------------------------------------------------------
 if __name__ == '__main__':
+        
+    # Checking if we are using gpu
+    # assert tf.test.is_gpu_available()
+    # assert tf.test.is_built_with_cuda()
+    if tf.test.gpu_device_name():
+        print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
+    else:
+        print("Please install GPU version of TF")
+    
+    # arguments
     parser = argparse.ArgumentParser(description='provide arguments for PPO agent')
     #loading the environment to get it default params
     env = SEIR_v0_3()
