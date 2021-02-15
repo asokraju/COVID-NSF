@@ -34,6 +34,39 @@
 - Use ipython (`7.20.0`) kernel for debugging and testing
   - `conda install ipython`
 
+## Verification
+
+1. Using `numba`
+    - `numba -s`
+
+    you should something similar:
+
+    ```text
+    __CUDA Information__
+    CUDA Device Initialized                       : True
+    CUDA Driver Version                           : 11020
+    CUDA Detect Output:
+    Found 1 CUDA devices
+    id 0     b'GeForce GTX 980M'                              [SUPPORTED]
+    ```
+
+## Final list of necessary packages
+
+```text
+gym                       0.18.0
+ipython                   7.20.0
+joblib                    1.0.0
+matplotlib                3.3.2
+numpy                     1.19.2
+pandas                    1.2.1
+python                    3.8.5
+scikit-learn              0.23.2
+scipy                     1.6.0
+setuptools                52.0.0
+tensorflow                2.3.0
+tensorflow-gpu            2.3.0
+```
+
 # Instructions for running the code
 
 To be updated
