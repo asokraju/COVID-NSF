@@ -31,15 +31,17 @@ def work(model_path, seq):
     model = tf.keras.models.load_model(model_path)
     return model.predict(seq)
 
-def worker(model, num_of_seq = 4):
+def workers(model, num_of_seq = 4):
     seqences = np.arange(0,num_of_seq*10).reshape(num_of_seq, -1)
     model_savepath = './simple_model.h5'
     model.save(model_savepath)
     path_list = [model_savepath for _ in range(num_of_seq)]
+
     with concurrent.futures.ProcessPoolExecutor(max_workers=None) as executor:        
         t0 = time.perf_counter()
         # model_list = [clone_model(model) for _ in range(num_of_seq)]
-        index_list = np.arange(1, num_of_seq)# [clone_model(model) for _ in range(num_of_seq)]
+        index_list = np.arange(1, num_of_seq)
+        # [clone_model(model) for _ in range(num_of_seq)]
         # print(model_list)
         future_to_samples = {executor.submit(work, path, seq): seq for path, seq in zip(path_list,seqences)}
     Seq_out = []
@@ -56,5 +58,5 @@ if __name__ == '__main__':
     model = simple_model()
     num_of_seq = 400
     # model_list = [clone_model(model) for _ in range(4)]
-    out = worker(model, num_of_seq=num_of_seq)
+    out = workers(model, num_of_seq=num_of_seq)
     print(out)

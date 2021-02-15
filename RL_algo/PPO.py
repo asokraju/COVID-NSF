@@ -1,13 +1,10 @@
 import os
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-import random
-import gym
-from gym import spaces
-from gym.utils import seeding
+# #os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-import pylab
+
 import numpy as np
+
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Dense, Lambda, Add, Flatten, GRU
@@ -21,7 +18,6 @@ from functools import partial
 
 from sklearn.preprocessing import StandardScaler
 from joblib import dump, load
-from scipy.io import savemat
 
 def AC_model(input_shape, action_dim, lr):
     """
@@ -144,7 +140,7 @@ def sampler(env, rnn_steps, episode_num, gamma, std_scalar_path, actor_path, cri
             state = np.reshape(states[-rnn_steps:], (1, rnn_steps, -1))
             # print(np.reshape(state, (1,-1)), np.shape(np.reshape(state, (1,-1))))
             #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
-            if episode_num<=1:
+            if episode_num<=0:
                 action = np.random.choice(3)
                 prediction = np.full((3,), 1/3)
             else:
@@ -332,6 +328,7 @@ class PPOAgent:
         discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation, added 1e-10 for numerical stability
         return discounted_rewards
 
+
     def replay(self, states, actions, rewards, predictions):
         states = np.vstack(states)
         actions = np.vstack(actions)
@@ -424,6 +421,7 @@ class PPOAgent:
         #Y = [y_true, discounted_r]
         return states_rnn, y_true, discounted_r , score     
 
+
     def run(self):
         for self.e in range(self.EPSIODES):
             self.Actor.save(self.Actor_name)
@@ -465,6 +463,7 @@ class PPOAgent:
             outputs     = {'actions':y_actions, 'values': y_values}
             self.Actor_Critic.fit(x = states, y = outputs, epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))
             # self.Actor_Critic.fit(x = states, y = [y_actions, y_values], epochs=self.EPOCHS, verbose=0, shuffle=True, batch_size=len(states))    
+
 
     def run_mpi(self):
         current_actor  = self.path + "/" + self.Model_name + '_Current_Actor.h5'

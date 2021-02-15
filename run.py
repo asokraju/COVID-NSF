@@ -24,7 +24,8 @@ from RL_algo.PPO import AC_model, PPOAgent
 #to reduce the tensorflow messages
 # tf.get_logger().setLevel('WARNING')
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-# 0.0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+tf.get_logger().setLevel('ERROR')
+
 # /home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
 
 #---------------------------------------------------------------------
@@ -37,7 +38,7 @@ if __name__ == '__main__':
     action_dim = env.action_space.n
     #--------------------------------------------------------------------
     #general params
-    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2/delete_1/')
+    parser.add_argument('--summary_dir', help='directory for saving and loading model and other data', default='./results/Senario-2/delete_2/')
     parser.add_argument('--use_gpu', help='weather to use gpu or not', type = bool, default=True)
     parser.add_argument('--save_model', help='Saving model from summary_dir', type = bool, default=True)
     parser.add_argument('--load_model', help='Loading model from summary_dir', type = bool, default=True)
@@ -51,7 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.995)
     parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=100)
     parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.1)
-    parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-2)
+    parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-1)
 
 
     #model/env paramerterss
@@ -158,10 +159,7 @@ if __name__ == '__main__':
         use_mpi          =   args['mpi']
         )       
     
-    # try:
-    #     agent.load()
-    # except:
-    #     pass
+
     t0= time.perf_counter()
     if not args['mpi']:
         agent.run()
@@ -169,7 +167,7 @@ if __name__ == '__main__':
         agent.run_mpi()
     t1 = time.perf_counter()
     print("Time taken to run the experiment: ",t1-t0)
-    #testing
+    # testing
     print("testing the agent")
     agent.test(savefig_filename='fin_plot.pdf')
     data = dict(

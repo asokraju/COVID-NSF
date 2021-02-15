@@ -96,11 +96,11 @@ class SEIR_v0_3(gym.Env):
         self.n_actions    = 3
 
         # Crowd densities
-        self.rho          = np.array([0.044, 0.25, 1], dtype=float)      # now
+        self.rho          = np.array([0.044, 0.25, 1.], dtype=float)
         # Resulting Infection rate beta = rho*theta*d^2 = [0.009, 0.049, 0.196]
 
         #Economic costs 
-        self.eco_costs    = np.array([1, 0.25, 0], dtype=float) 
+        self.eco_costs    = np.array([1, 0.25, 0.0], dtype=float) 
 
         #gym action space and observation space
         self.action_space = spaces.Discrete(3)
