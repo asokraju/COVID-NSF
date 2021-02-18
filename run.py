@@ -23,8 +23,8 @@ from RL_algo.PPO import AC_model, PPOAgent
 
 #to reduce the tensorflow messages
 # tf.get_logger().setLevel('WARNING')
-# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-# tf.get_logger().setLevel('ERROR')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
+tf.get_logger().setLevel('ERROR')
 
 # /home/kosaraju/anaconda3/envs/tf-gpu/bin/python $DIR/run.py --gamma=
 #---------------------------------------------------------------------

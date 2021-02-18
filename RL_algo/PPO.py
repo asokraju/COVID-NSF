@@ -109,79 +109,79 @@ def AC_model_new(input_shape, action_dim, lr, EPSILON, C, rnn, rnn_steps):
 
 
 def sampler(env, rnn_steps, episode_num, gamma, std_scalar_path, actor_path, critic_path):
-        states, actions, rewards, predictions = [], [], [], []
-        # if os.path.isfile(actor_path):
-        # Loading the models for actor, critic and standard scalar
-        try:
-            std_scalar = load(std_scalar_path)
-        except:
-            assert os.path.isfile(std_scalar_path), "Standard Scalar path is empty"
+    states, actions, rewards, predictions = [], [], [], []
+    # if os.path.isfile(actor_path):
+    # Loading the models for actor, critic and standard scalar
+    try:
+        std_scalar = load(std_scalar_path)
+    except:
+        assert os.path.isfile(std_scalar_path), "Standard Scalar path is empty"
 
-        try:
-            Actor = load_model(actor_path, compile=False)
-        except:
-            assert os.path.isfile(actor_path), "Actor path is empty"
+    try:
+        Actor = load_model(actor_path, compile=False)
+    except:
+        assert os.path.isfile(actor_path), "Actor path is empty"
 
-        try:
-            Critic = load_model(critic_path, compile=False)
-        except:
-            assert  os.path.isfile(critic_path), "Critic path is empty"
+    try:
+        Critic = load_model(critic_path, compile=False)
+    except:
+        assert  os.path.isfile(critic_path), "Critic path is empty"
 
-        state = env.reset()
-        for _ in range(rnn_steps - 1):
-            state = std_scalar.transform(np.reshape(state, (1,-1)))
-            states.append(state.tolist())
-            state, _, _, _ = env.step(env.action_space.sample())
+    state = env.reset()
+    for _ in range(rnn_steps - 1):
+        state = std_scalar.transform(np.reshape(state, (1,-1)))
+        states.append(state.tolist())
+        state, _, _, _ = env.step(env.action_space.sample())
 
-        done, score = False, 0
-        while not done:
-            state = std_scalar.transform(np.reshape(state, (1,-1)))
-            states.append(state.tolist())
-            state = np.reshape(states[-rnn_steps:], (1, rnn_steps, -1))
-            # print(np.reshape(state, (1,-1)), np.shape(np.reshape(state, (1,-1))))
-            #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
-            if episode_num<=0:
-                action = np.random.choice(3)
-                prediction = np.full((3,), 1/3)
-            else:
-                # prediction = Actor.predict(np.reshape(state, (1,-1)))[0]
-                prediction = Actor.predict(state)[0]
-                action = np.random.choice(env.action_space.n, p=prediction)
-            next_state, reward, done, _ = env.step(action)
-            actions_onehot = tf.keras.utils.to_categorical(action, env.action_space.n)
-            actions.append(actions_onehot)
-            predictions.append(prediction)
-            rewards.append(reward)
-            state = next_state
-            score += reward
-        states = np.vstack(states)
-        actions = np.vstack(actions)
-        predictions = np.vstack(predictions)
+    done, score = False, 0
+    while not done:
+        state = std_scalar.transform(np.reshape(state, (1,-1)))
+        states.append(state.tolist())
+        state = np.reshape(states[-rnn_steps:], (1, rnn_steps, -1))
+        # print(np.reshape(state, (1,-1)), np.shape(np.reshape(state, (1,-1))))
+        #prediction, action  = self.predict_actions(states[-self.rnn_steps:])
+        if episode_num<=0:
+            action = np.random.choice(3)
+            prediction = np.full((3,), 1/3)
+        else:
+            # prediction = Actor.predict(np.reshape(state, (1,-1)))[0]
+            prediction = Actor.predict(state)[0]
+            action = np.random.choice(env.action_space.n, p=prediction)
+        next_state, reward, done, _ = env.step(action)
+        actions_onehot = tf.keras.utils.to_categorical(action, env.action_space.n)
+        actions.append(actions_onehot)
+        predictions.append(prediction)
+        rewards.append(reward)
+        state = next_state
+        score += reward
+    states = np.vstack(states)
+    actions = np.vstack(actions)
+    predictions = np.vstack(predictions)
 
-        #computing the discounted rewards
-        reward_sum = 0
-        discounted_rewards = []
-        for reward in rewards[::-1]:
-            reward_sum = reward + gamma * reward_sum
-            discounted_rewards.append(reward_sum)
-        discounted_rewards.reverse()
-        discounted_rewards = np.array(discounted_rewards)
-        discounted_rewards -= np.mean(discounted_rewards) # normalizing the result
-        discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation, added 1e-10 for numerical stability
-        discounted_r = np.vstack(discounted_rewards)
+    #computing the discounted rewards
+    reward_sum = 0
+    discounted_rewards = []
+    for reward in rewards[::-1]:
+        reward_sum = reward + gamma * reward_sum
+        discounted_rewards.append(reward_sum)
+    discounted_rewards.reverse()
+    discounted_rewards = np.array(discounted_rewards)
+    discounted_rewards -= np.mean(discounted_rewards) # normalizing the result
+    discounted_rewards /= (np.std(discounted_rewards) + 1e-10) # divide by standard deviation, added 1e-10 for numerical stability
+    discounted_r = np.vstack(discounted_rewards)
 
 
-        states_rnn = [states[i:i+rnn_steps].tolist() for i in range(len(states) - rnn_steps+1)]
-        states_rnn = np.reshape(states_rnn, (-1, rnn_steps, env.observation_space.shape[0]))
-        values = Critic.predict(states_rnn)
-        # print("values", values)
-        # print("discounted_r", np.shape(discounted_r))
-        advantages = discounted_r - values
-        
-        y_true = np.hstack([advantages, predictions, actions])
+    states_rnn = [states[i:i+rnn_steps].tolist() for i in range(len(states) - rnn_steps+1)]
+    states_rnn = np.reshape(states_rnn, (-1, rnn_steps, env.observation_space.shape[0]))
+    values = Critic.predict(states_rnn)
+    # print("values", values)
+    # print("discounted_r", np.shape(discounted_r))
+    advantages = discounted_r - values
+    
+    y_true = np.hstack([advantages, predictions, actions])
 
-        #Y = [y_true, discounted_r]
-        return states_rnn, y_true, discounted_r , score     
+    #Y = [y_true, discounted_r]
+    return states_rnn, y_true, discounted_r , score     
 
 
 def _std_scalar_work(env):
