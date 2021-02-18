@@ -59,8 +59,8 @@ if __name__ == '__main__':
     parser.add_argument('--max_episodes', help='max number of episodes', type = int, default=300)
     parser.add_argument('--exp_name', help='Name of the experiment', default='seir')
     parser.add_argument('--gamma', help='models the long term returns', type =float, default=0.995)
-    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=100)
-    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.1)
+    parser.add_argument('--traj_per_episode', help='trajectories per episode', type = int, default=50)
+    parser.add_argument('--EPSILON', help='Clip parameter of PPO algorithm, between 0-1',type =float, default=0.2)
     parser.add_argument('--C', help='Controls the entropy, exploration',type =float, default=5e-1)
 
 
