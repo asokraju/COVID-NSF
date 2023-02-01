@@ -7,7 +7,7 @@ To overcome this limitation and improve the overall speed of the algorithm, I ha
 
 This is  used for computing the optimal policies in SEIR epidamic models. During the pandemic different control policies such as Lockdown, social distancing, and Congregation restriction has been implemented in an ad-hoc manner to control the disease spread while minimizing the economic/social losses. However, the control policies should be designed to balance their effectiveness on disease spreading while minimizing their impacts on economy/society, poses the key challenge in pandemic-time decision making.  I study and propose the optimal control policies through Reinforcement Learning under data uncertainity and sampling bias. To achieve this I have used the Proximal Policy Optimization algorithm, implemented using TensorFlow deeplearning toolbox. 
 
-(details:)
+(details)
 
 - We model the spread of COVID-19 as an SEIR (Susceptible, Exposed, Infected, and Removed) epidemic model.
 - The transmission rate `beta`, representing the number of susceptible people infected per infectious person per day, is a controllable variable.
